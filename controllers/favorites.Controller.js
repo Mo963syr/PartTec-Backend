@@ -42,9 +42,7 @@ exports.viewFavorites = async (req, res) => {
   try {
     const { userId } = req.params;
 
-    const favorites = await Favorite.find({ userId })
-      .populate('partId') 
-      .exec();
+    const favorites = await Favorite.find({ userId }).populate('partId').exec();
 
     res.status(200).json({
       favorites: favorites.map((fav) => fav.partId),
