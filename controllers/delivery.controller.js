@@ -1,6 +1,6 @@
 const mongoose = require('mongoose');
 const Order = require('../models/order.model');
-const User = require('../models/user.Model');
+const User = require('../models/user.model');
 
 const normalizeProvince = (s) => (s ?? '').toString().trim().toLowerCase();
 
