@@ -1,7 +1,7 @@
 // const mongoose = require('mongoose');
 
 const Car = require('../models/car.Model');
-const User = require('../models/user.Model');
+const User = require('../models/user.model');
 exports.addCar = async (req, res) => {
   const { manufacturer, model, year, fuelType, user } = req.body;
 
@@ -31,19 +31,18 @@ exports.addCarToUser = async (req, res) => {
     const userId = req.params.userId;
     const { manufacturer, model, year, fuelType } = req.body;
 
-  
     const user = await User.findById(userId);
     if (!user) {
       return res.status(404).json({ message: 'المستخدم غير موجود' });
     }
 
-const car = await Car.create({
-  manufacturer: manufacturer ? manufacturer.toLowerCase() : null,
-  model: model ? model.toLowerCase() : null,
-  year: year ? parseInt(year) : null,
-  fuelType: fuelType ? fuelType.toLowerCase() : null,
-  user: userId,
-});
+    const car = await Car.create({
+      manufacturer: manufacturer ? manufacturer.toLowerCase() : null,
+      model: model ? model.toLowerCase() : null,
+      year: year ? parseInt(year) : null,
+      fuelType: fuelType ? fuelType.toLowerCase() : null,
+      user: userId,
+    });
 
     user.cars.push(car._id);
     await user.save();

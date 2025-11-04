@@ -1,6 +1,6 @@
 const cart = require('../models/cart.model');
 const SpicificOrder = require('../models/spicificPartOrder.model');
-const User = require('../models/user.Model');
+const User = require('../models/user.model');
 const Part = require('../models/part.Model');
 const Order = require('../models/order.model');
 const OrderSummary = require('../models/orderSummary.model');
@@ -51,12 +51,12 @@ exports.getCartItemsForSeller = async (req, res) => {
 
 exports.addPart = async (req, res) => {
   try {
-    const { partId, userId ,quantity} = req.body;
+    const { partId, userId, quantity } = req.body;
 
     const cartData = {
       partId,
       userId,
-      quantity
+      quantity,
     };
 
     const addCart = new cart(cartData);
@@ -91,41 +91,49 @@ exports.viewcartitem = async (req, res) => {
       .sort({ createdAt: -1 });
 
     // تنسيق عناصر الكارت
-    const normalizedCart = cartItems.map(item => ({
+    const normalizedCart = cartItems.map((item) => ({
       _id: item._id,
-      partId: item.partId ? {
-        _id: item.partId._id,
-        name: item.partId.name,
-        manufacturer: item.partId.manufacturer,
-        model: item.partId.model,
-        year: item.partId.year,
-        category: item.partId.category,
-        status: item.partId.status,
-        price: item.partId.price,
-        imageUrl: item.partId.imageUrl,
-        user: item.partId.user,
-        compatibleCars: item.partId.compatibleCars || [],
-        createdAt: item.partId.createdAt,
-        updatedAt: item.partId.updatedAt,
-        __v: item.partId.__v,
-        comments: item.partId.comments || [],
-        age: item.partId.age,
-        id: item.partId.id,
-      } : null,
+      partId: item.partId
+        ? {
+            _id: item.partId._id,
+            name: item.partId.name,
+            manufacturer: item.partId.manufacturer,
+            model: item.partId.model,
+            year: item.partId.year,
+            category: item.partId.category,
+            status: item.partId.status,
+            price: item.partId.price,
+            imageUrl: item.partId.imageUrl,
+            user: item.partId.user,
+            compatibleCars: item.partId.compatibleCars || [],
+            createdAt: item.partId.createdAt,
+            updatedAt: item.partId.updatedAt,
+            __v: item.partId.__v,
+            comments: item.partId.comments || [],
+            age: item.partId.age,
+            id: item.partId.id,
+          }
+        : null,
       userId: item.userId,
       quantity: item.quantity,
       status: item.status,
       createdAt: item.createdAt,
       updatedAt: item.updatedAt,
       __v: item.__v,
-      source: "cart",
+      source: 'cart',
     }));
 
     // ===== جلب الطلبات الخاصة من OrderSummary =====
-    const userOrders = await SpicificOrder.find({ user: userId, status: 'قيد المعالجة' }).select('_id');
-    const orderIds = userOrders.map(o => o._id);
+    const userOrders = await SpicificOrder.find({
+      user: userId,
+      status: 'قيد المعالجة',
+    }).select('_id');
+    const orderIds = userOrders.map((o) => o._id);
 
-    const summaries = await OrderSummary.find({ order: { $in: orderIds }, status: 'قيد المعالجة' })
+    const summaries = await OrderSummary.find({
+      order: { $in: orderIds },
+      status: 'قيد المعالجة',
+    })
       .populate('order')
       .populate({
         path: 'offer',
@@ -145,7 +153,10 @@ exports.viewcartitem = async (req, res) => {
         category: item.order?.category || '',
         status: item.status || item.order?.status || '',
         price: item.appliedPrice || 0,
-        imageUrl: (item.appliedImages && item.appliedImages.length > 0) ? item.appliedImages[0] : '',
+        imageUrl:
+          item.appliedImages && item.appliedImages.length > 0
+            ? item.appliedImages[0]
+            : '',
         user: item.order?.user || userId,
         compatibleCars: [],
         createdAt: item.createdAt,
@@ -161,19 +172,23 @@ exports.viewcartitem = async (req, res) => {
       createdAt: item.createdAt,
       updatedAt: item.updatedAt,
       __v: 0,
-      source: "summary",
-      offer: item.offer ? {
-        _id: item.offer._id,
-        price: item.offer.price,
-        description: item.offer.description,
-        imageUrl: item.offer.imageUrl,
-        status: item.offer.status,
-        seller: item.offer.seller ? {
-          _id: item.offer.seller._id,
-          name: item.offer.seller.name,
-          email: item.offer.seller.email,
-        } : null,
-      } : null,
+      source: 'summary',
+      offer: item.offer
+        ? {
+            _id: item.offer._id,
+            price: item.offer.price,
+            description: item.offer.description,
+            imageUrl: item.offer.imageUrl,
+            status: item.offer.status,
+            seller: item.offer.seller
+              ? {
+                  _id: item.offer.seller._id,
+                  name: item.offer.seller.name,
+                  email: item.offer.seller.email,
+                }
+              : null,
+          }
+        : null,
     }));
 
     const allItems = [...normalizedCart, ...normalizedSummaries];
@@ -227,12 +242,10 @@ exports.updateCartStatus = async (req, res) => {
     });
   } catch (error) {
     console.error(error);
-    res
-      .status(500)
-      .json({
-        success: false,
-        message: '❌ فشل في تحديث الحالة',
-        error: error.message,
-      });
+    res.status(500).json({
+      success: false,
+      message: '❌ فشل في تحديث الحالة',
+      error: error.message,
+    });
   }
 };

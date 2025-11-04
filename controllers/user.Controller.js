@@ -1,4 +1,4 @@
-const User = require('../models/user.Model');
+const User = require('../models/user.model');
 const bcrypt = require('bcrypt');
 
 exports.updateUserLocation = async (req, res) => {
@@ -79,14 +79,13 @@ exports.addUser = async (req, res) => {
     const { name, email, password, phoneNumber, prands, companyName, role } =
       req.body;
 
-  
-    const hashedPassword = await bcrypt.hash(password, 10); 
+    const hashedPassword = await bcrypt.hash(password, 10);
 
     const user = await User.create({
       name,
       email,
       companyName,
-      password: hashedPassword, 
+      password: hashedPassword,
       phoneNumber,
       prands,
       role,
@@ -146,7 +145,6 @@ exports.viewsellerprands = async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 };
-
 
 exports.getAllUsersforAdmin = async (req, res) => {
   try {

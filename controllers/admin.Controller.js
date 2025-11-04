@@ -1,4 +1,4 @@
-const User = require('../models/user.Model');
+const User = require('../models/user.model');
 const Order = require('../models/order.model');
 
 exports.getDashboardStats = async (req, res) => {
@@ -22,4 +22,3 @@ exports.getDashboardStats = async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 };
-

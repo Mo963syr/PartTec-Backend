@@ -1,6 +1,6 @@
 const SpicificOrder = require('../models/spicificPartOrder.model');
 const part = require('../models/part.Model');
-const User = require('../models/user.Model');
+const User = require('../models/user.model');
 const Order = require('../models/order.model');
 const cloudinary = require('../utils/cloudinary');
 const mongoose = require('mongoose');

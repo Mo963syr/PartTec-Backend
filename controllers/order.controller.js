@@ -2,7 +2,7 @@
 const mongoose = require('mongoose');
 const Cart = require('../models/cart.model');
 const Order = require('../models/order.model');
-const User = require('../models/user.Model');
+const User = require('../models/user.model');
 const SpicificOrder = require('../models/spicificPartOrder.model');
 // const OrderSummary = require('../models/orderSummary.model');
 
