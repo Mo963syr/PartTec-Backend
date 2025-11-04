@@ -47,10 +47,9 @@ const spicificorderschema = new mongoose.Schema(
       type: Number,
       default: 0,
     },
-       count: {
+    count: {
       type: Number,
-      default:'1',
- 
+      default: '1',
     },
     notes: {
       type: String,
@@ -76,7 +75,6 @@ const spicificorderschema = new mongoose.Schema(
       ref: 'User',
       required: [true, 'يجب ربط القطعة بمعرف المستخدم'],
     },
-  
   },
   {
     timestamps: true,

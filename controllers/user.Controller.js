@@ -1,4 +1,5 @@
 const User = require('../models/user.Model');
+const bcrypt = require('bcrypt');
 
 exports.updateUserLocation = async (req, res) => {
   try {

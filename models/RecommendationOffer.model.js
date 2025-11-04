@@ -9,17 +9,27 @@ const recommendationOfferSchema = new mongoose.Schema(
     },
     order: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: 'spicificorderschema', 
+      ref: 'spicificorderschema',
       required: true,
     },
     price: {
       type: Number,
       required: true,
     },
-    imageUrl: {
-      type: String,
-      default: '',
-    },
+    imageUrl: [
+      {
+        type: String,
+        required: true,
+        validate: {
+          validator: function (v) {
+            return /^(https?:\/\/)?([\da-z\.-]+)\.([a-z\.]{2,6})([\/\w \.-]*)*\/?$/.test(
+              v
+            );
+          },
+          message: (props) => `${props.value} ليس رابط صحيح للصورة!`,
+        },
+      },
+    ],
     description: {
       type: String,
       default: '',

@@ -9,8 +9,8 @@ const fs = require('fs');
 const path = require('path');
 const { count } = require('console');
 
-const express = require("express");
-const axios = require("axios");
+const express = require('express');
+const axios = require('axios');
 
 exports.getRecommendations = async (req, res) => {
   try {
@@ -19,16 +19,15 @@ exports.getRecommendations = async (req, res) => {
     if (!mongoose.Types.ObjectId.isValid(userId)) {
       return res.status(400).json({
         success: false,
-        message: "⚠️ معرف المستخدم غير صالح",
+        message: '⚠️ معرف المستخدم غير صالح',
       });
     }
 
-   
     const response = await axios.post(
-      "https://reccomendation-system-06l7.onrender.com/recommend",
-      { user_id: userId ,top_n:10},
-      
-      { headers: { "Content-Type": "application/json" } }
+      'https://reccomendation-system-06l7.onrender.com/recommend',
+      { user_id: userId, top_n: 10 },
+
+      { headers: { 'Content-Type': 'application/json' } }
     );
 
     const recommendations = response.data.recommendations || [];
@@ -36,15 +35,16 @@ exports.getRecommendations = async (req, res) => {
     if (!Array.isArray(recommendations) || recommendations.length === 0) {
       return res.status(200).json({
         success: true,
-        message: "لا توجد توصيات حالياً",
+        message: 'لا توجد توصيات حالياً',
         recommendations: [],
       });
     }
 
-   
-    const parts = await part.find({
-      _id: { $in: recommendations },
-    }).select("name manufacturer model year price imageUrl");
+    const parts = await part
+      .find({
+        _id: { $in: recommendations },
+      })
+      .select('name manufacturer model year price imageUrl');
 
     return res.status(200).json({
       success: true,
@@ -52,10 +52,10 @@ exports.getRecommendations = async (req, res) => {
       recommendations: parts,
     });
   } catch (err) {
-    console.error("❌ خطأ أثناء جلب التوصيات:", err.message);
+    console.error('❌ خطأ أثناء جلب التوصيات:', err.message);
     return res.status(500).json({
       success: false,
-      message: "❌ فشل في جلب التوصيات",
+      message: '❌ فشل في جلب التوصيات',
       error: err.message,
     });
   }
@@ -65,7 +65,7 @@ exports.getPartsbyId = async (req, res) => {
   try {
     const { partId } = req.body;
     const parts = await part
-      .find({_id: partId })
+      .find({ _id: partId })
       .select('_id name manufacturer year')
       .lean();
 
@@ -452,8 +452,10 @@ exports.getCompatibleParts = async (req, res) => {
     });
   }
 };
+// تجلب الطلبات اليدوية لللقطع حسب الصلاحية اذا كان مقدم الطلب المستخدم او بائع
 exports.CompatibleSpicificOrders = async (req, res) => {
   try {
+    //الرول هنا حسب مقدم الطلب الخاص
     const { userid, role: targetRole } = req.params;
 
     if (!mongoose.Types.ObjectId.isValid(userid)) {
@@ -476,7 +478,7 @@ exports.CompatibleSpicificOrders = async (req, res) => {
 
     const raw = await SpicificOrder.find(manufacturerFilter)
       .select(
-        'name serialNumber manufacturer model year status price imageUrl notes user'
+        'name serialNumber manufacturer model year status price imageUrls notes user'
       )
       .populate({
         path: 'user',
@@ -505,7 +507,7 @@ exports.CompatibleSpicificOrders = async (req, res) => {
         price: order.price,
 
         requesterRole: order.user?.role,
-        imageUrl: order.imageUrls || '/default-part-image.jpg',
+        imageUrls: order.imageUrls || '/default-part-image.jpg',
       })),
       meta: {
         totalorders: compatibleParts.length,
