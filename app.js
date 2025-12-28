@@ -16,12 +16,15 @@ const Comment = require('./routes/comment.routes');
 const admin = require('./routes/adminRoutes');
 const paymentRoutes = require('./routes/payment.Routes');
 const pricingRoutes = require('./routes/pricingRoutes');
+const carBrands=require('./routes/carBrands.Routes');
+const seedData = require('./seed/carSeeder');
 
 const app = express();
 app.use(express.json());
 
 app.use('/pricing', pricingRoutes);
 app.use('/cars', carRoutes);
+app.use('/car-brands', carBrands);
 app.use('/admin', admin);
 app.use('/user', userRoutes);
 app.use('/auth', userRoutes);
@@ -34,9 +37,10 @@ app.use('/favorites', favoritesRoutes);
 app.use('/order', req);
 app.use('/comment', Comment);
 app.use('/payment', paymentRoutes);
-
+app.use(bodyParser.urlencoded({ extended: true }));     
 app.use(bodyParser.json());
-
+app.use(express.json());
+app.use
 
 app.get('/health', (req, res) => {
   console.log('🩺 Health check requested');
@@ -79,11 +83,12 @@ if (process.env.NODE_ENV !== 'test') {
   const uri = process.env.MONGO_URI;
   mongoose
     .connect(uri)
-    .then(() => {
+    .then(async () => {
       console.log('✅ تم الاتصال بقاعدة بيانات PartTec في MongoDB Atlas');
       app.listen(PORT, () => {
         console.log(`🚀 الخادم يعمل على المنفذ ${PORT}`);
       });
+       await seedData();
     })
     .catch((err) => {
       console.error('❌ فشل الاتصال:', err);
