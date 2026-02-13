@@ -79,7 +79,7 @@ app.get('/api/health', (req, res) => {
 
 
 if (process.env.NODE_ENV !== 'test') {
-  const PORT = process.env.PORT || 3000;
+  const PORT = process.env.PORT || 3001;
   const uri = process.env.MONGO_URI;
   mongoose
     .connect(uri)

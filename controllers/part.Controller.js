@@ -452,6 +452,111 @@ exports.getCompatibleParts = async (req, res) => {
     });
   }
 };
+exports.getallOrdersForSeller = async (req, res) => {
+  try {
+    const { userid } = req.params;
+    const { manufacturer, status }=req.query
+    // 1️⃣ التحقق من صحة ObjectId
+    if (!mongoose.Types.ObjectId.isValid(userid)) {
+      return res.status(400).json({
+        success: false,
+        message: 'معرف المستخدم غير صالح',
+      });
+    }
+
+    // 2️⃣ التأكد أن المستخدم بائع
+    const user = await User.findById(userid).select('role');
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: 'المستخدم غير موجود',
+      });
+    }
+
+    if (user.role !== 'seller') {
+      return res.status(403).json({
+        success: false,
+        message: 'هذه العملية متاحة للبائعين فقط',
+      });
+    }
+
+    // 3️⃣ بناء الفلتر الديناميكي
+    const filter = {};
+
+    // فلترة manufacturer
+    if (manufacturer && manufacturer !== 'all') {
+      filter.manufacturer = manufacturer;
+    }
+
+    // فلترة status
+    const allowedStatuses = [
+      'قيد البحث',
+      'قيد المعالجة',
+      'ملغي',
+      'على الطريق',
+      'تم التوصيل',
+      'مؤكد',
+    ];
+
+    if (status && status !== 'all') {
+      if (!allowedStatuses.includes(status)) {
+        return res.status(400).json({
+          success: false,
+          message: 'حالة الطلب غير صالحة',
+        });
+      }
+
+      filter.status = status;
+    }
+
+    // 4️⃣ تنفيذ الاستعلام
+    const orders = await SpicificOrder.find(filter)
+      .select(
+        'name serialNumber manufacturer model year status price imageUrls notes user count'
+      )
+      .sort({ createdAt: -1 })
+      .lean();
+
+    return res.status(200).json({
+      success: true,
+      filters: {
+        manufacturer: manufacturer || 'all',
+        status: status || 'all',
+      },
+      totalOrders: orders.length,
+      orders: orders.map((order) => ({
+        id: order._id,
+        name: order.name,
+        serialNumber: order.serialNumber,
+        manufacturer: order.manufacturer,
+        model: order.model,
+        year: order.year,
+        count: order.count,
+        status: order.status,
+        price: order.price,
+        notes: order.notes,
+        imageUrls: order.imageUrls?.length
+          ? order.imageUrls
+          : ['/default-part-image.jpg'],
+      })),
+    });
+  } catch (error) {
+    console.error('خطأ في جلب الطلبات:', error);
+
+    return res.status(500).json({
+      success: false,
+      message: 'حدث خطأ في الخادم',
+      error:
+        process.env.NODE_ENV === 'development'
+          ? error.message
+          : undefined,
+    });
+  }
+};
+
+
+
+
 // تجلب الطلبات اليدوية لللقطع حسب الصلاحية اذا كان مقدم الطلب المستخدم او بائع
 exports.CompatibleSpicificOrders = async (req, res) => {
   try {
