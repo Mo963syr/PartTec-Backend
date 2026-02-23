@@ -48,6 +48,23 @@ api.use('/payment', paymentRoutes);
 // ✅ هنا نضيف البريفكس مرة واحدة لكل API
 app.use('/parttec', api);
 
+const cors = require('cors');
+
+app.use(cors({
+  origin: [
+    'http://localhost:59567',
+    'http://localhost:3000',
+    'http://127.0.0.1:59567',
+    'http://187.124.3.3',
+  ],
+  methods: ['GET','POST','PUT','PATCH','DELETE','OPTIONS'],
+  allowedHeaders: ['Content-Type','Authorization'],
+  credentials: true,
+}));
+
+app.options('*', cors()); // مهم جداً للـ preflight
+
+
 // Health endpoints (خليها بدون prefix أو حطها ضمن /parttec حسب رغبتك)
 app.get('/health', (req, res) => {
   res.json({ status: 'OK', timestamp: new Date().toISOString() });
