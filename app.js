@@ -16,83 +16,55 @@ const Comment = require('./routes/comment.routes');
 const admin = require('./routes/adminRoutes');
 const paymentRoutes = require('./routes/payment.Routes');
 const pricingRoutes = require('./routes/pricingRoutes');
-const carBrands=require('./routes/carBrands.Routes');
+const carBrands = require('./routes/carBrands.Routes');
 const seedData = require('./seed/carSeeder');
 
 const app = express();
-app.use(express.json());
 
-app.use('/pricing', pricingRoutes);
-app.use('/cars', carRoutes);
-app.use('/car-brands', carBrands);
-app.use('/admin', admin);
-app.use('/user', userRoutes);
-app.use('/auth', userRoutes);
-app.use('/part', partRoutes);
-app.use('/cart', cartRoutes);
-app.use('/delivery', deliveryRoutes);
-app.use('/order', orderRoutes);
-app.use('/api/models', modelsRoute);
-app.use('/favorites', favoritesRoutes);
-app.use('/order', req);
-app.use('/comment', Comment);
-app.use('/payment', paymentRoutes);
-app.use(bodyParser.urlencoded({ extended: true }));     
+// Middlewares (مرة واحدة فقط)
+app.use(express.json());
+app.use(bodyParser.urlencoded({ extended: true }));
 app.use(bodyParser.json());
-app.use(express.json());
-app.use
 
+// ✅ اجمع كل الراوتات داخل Router واحد
+const api = express.Router();
+
+api.use('/pricing', pricingRoutes);
+api.use('/cars', carRoutes);
+api.use('/car-brands', carBrands);
+api.use('/admin', admin);
+api.use('/user', userRoutes);
+api.use('/auth', userRoutes);
+api.use('/part', partRoutes);
+api.use('/cart', cartRoutes);
+api.use('/delivery', deliveryRoutes);
+api.use('/order', orderRoutes);
+api.use('/api/models', modelsRoute);
+api.use('/favorites', favoritesRoutes);
+api.use('/order', req);
+api.use('/comment', Comment);
+api.use('/payment', paymentRoutes);
+
+// ✅ هنا نضيف البريفكس مرة واحدة لكل API
+app.use('/parttec', api);
+
+// Health endpoints (خليها بدون prefix أو حطها ضمن /parttec حسب رغبتك)
 app.get('/health', (req, res) => {
-  console.log('🩺 Health check requested');
-  res.json({
-    status: 'OK',
-    service: 'Syniery Code API',
-    timestamp: new Date().toISOString(),
-    uptime: `${Math.floor(process.uptime())} seconds`,
-    memory: {
-      used: `${Math.round(process.memoryUsage().heapUsed / 1024 / 1024)}MB`,
-      total: `${Math.round(process.memoryUsage().heapTotal / 1024 / 1024)}MB`,
-    },
-    environment: process.env.NODE_ENV || 'production',
-  });
+  res.json({ status: 'OK', timestamp: new Date().toISOString() });
 });
-
-app.get('/health/ping', (req, res) => {
-  console.log('🏓 Ping received - keeping server awake');
-  res.json({
-    pong: Date.now(),
-    message: 'Server is awake and ready! 🚀',
-    timestamp: new Date().toISOString(),
-    service: 'Syniery Code Email API',
-    checkedBy: 'UptimeRobot',
-  });
-});
-
-app.get('/api/health', (req, res) => {
-  res.json({
-    status: 'OK',
-    message: 'API is working perfectly',
-    timestamp: new Date().toISOString(),
-  });
-});
-
-
 
 if (process.env.NODE_ENV !== 'test') {
   const PORT = process.env.PORT || 3001;
   const uri = process.env.MONGO_URI;
+
   mongoose
     .connect(uri)
     .then(async () => {
       console.log('✅ تم الاتصال بقاعدة بيانات PartTec في MongoDB Atlas');
-      app.listen(PORT, () => {
-        console.log(`🚀 الخادم يعمل على المنفذ ${PORT}`);
-      });
-       await seedData();
+      app.listen(PORT, () => console.log(`🚀 الخادم يعمل على المنفذ ${PORT}`));
+      await seedData();
     })
-    .catch((err) => {
-      console.error('❌ فشل الاتصال:', err);
-    });
+    .catch((err) => console.error('❌ فشل الاتصال:', err));
 }
 
 module.exports = app;
