@@ -74,6 +74,73 @@ exports.getAllUsers = async (req, res) => {
     });
   }
 };
+
+exports.getUserData = async (req, res) => {
+  try {
+    const userData = await User.find({ role: 'user', _id: req.params.userId }).select('name email phoneNumber province');
+
+    // const user_id = users.map((u) => u._id);
+
+    res.status(200).json({
+      success: true,
+      userData: userData,
+    });
+  } catch (err) {
+    console.error('❌ خطأ عند جلب المستخدمين:', err);
+    res.status(500).json({
+      success: false,
+      message: 'فشل جلب المستخدمين',
+    });
+  }
+};
+// ✅ Controller: edit/update user data
+// PUT /parttec/user/:userId   (مثال)
+// Body: { name?, email?, phoneNumber?, province? }
+
+exports.updateUserData = async (req, res) => {
+  try {
+    const { userId } = req.params;
+
+
+    const allowed = ['name', 'email', 'phoneNumber', 'province'];
+    const updates = {};
+    for (const key of allowed) {
+      if (req.body[key] !== undefined) updates[key] = req.body[key];
+    }
+
+    if (Object.keys(updates).length === 0) {
+      return res.status(400).json({
+        success: false,
+        message: 'لا يوجد أي بيانات لتحديثها',
+      });
+    }
+
+    const user = await User.findOneAndUpdate(
+      { _id: userId, role: 'user' },
+      { $set: updates },
+      { new: true, runValidators: true }
+    ).select('name email phoneNumber province role');
+
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: 'المستخدم غير موجود',
+      });
+    }
+
+    return res.status(200).json({
+      success: true,
+      message: '✅ تم تحديث بيانات المستخدم بنجاح',
+      user,
+    });
+  } catch (err) {
+    console.error('❌ خطأ عند تحديث بيانات المستخدم:', err);
+    return res.status(500).json({
+      success: false,
+      message: 'فشل تحديث بيانات المستخدم',
+    });
+  }
+};
 exports.addUser = async (req, res) => {
   try {
     const { name, email, password, phoneNumber, prands, companyName, role } =

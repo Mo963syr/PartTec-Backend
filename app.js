@@ -1,3 +1,6 @@
+// server.js (أو نفس ملف التشغيل)
+// ✅ اطبع كل الـ endpoints بشكل مرتب عند تشغيل السيرفر
+
 const express = require('express');
 const mongoose = require('mongoose');
 const bodyParser = require('body-parser');
@@ -19,9 +22,11 @@ const pricingRoutes = require('./routes/pricingRoutes');
 const carBrands = require('./routes/carBrands.Routes');
 const seedData = require('./seed/carSeeder');
 
+const cors = require('cors');
+
 const app = express();
 
-// Middlewares (مرة واحدة فقط)
+// Middlewares
 app.use(express.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(bodyParser.json());
@@ -45,10 +50,10 @@ api.use('/order', req);
 api.use('/comment', Comment);
 api.use('/payment', paymentRoutes);
 
-// ✅ هنا نضيف البريفكس مرة واحدة لكل API
+// ✅ prefix مرة واحدة
 app.use('/parttec', api);
 
-const cors = require('cors');
+// CORS (كما عندك)
 app.use((req, res, next) => {
   const origin = req.headers.origin;
   if (origin) res.setHeader('Access-Control-Allow-Origin', origin);
@@ -61,25 +66,117 @@ app.use((req, res, next) => {
   next();
 });
 
-app.use(cors({
-  origin: [
-    'http://localhost:59567',
-    'http://localhost:3000',
-    'http://127.0.0.1:59567',
-    'http://187.124.3.3',
-  ],
-  methods: ['GET','POST','PUT','PATCH','DELETE','OPTIONS'],
-  allowedHeaders: ['Content-Type','Authorization'],
-  credentials: true,
-}));
+app.use(
+  cors({
+    origin: [
+      'http://localhost:59567',
+      'http://localhost:3000',
+      'http://127.0.0.1:59567',
+      'http://187.124.3.3',
+    ],
+    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization'],
+    credentials: true,
+  })
+);
 
-app.options('*', cors()); // مهم جداً للـ preflight
+app.options('*', cors());
 
-
-// Health endpoints (خليها بدون prefix أو حطها ضمن /parttec حسب رغبتك)
+// Health
 app.get('/health', (req, res) => {
   res.json({ status: 'OK', timestamp: new Date().toISOString() });
 });
+
+/* =========================
+   ✅ طباعة كل الـ Endpoints
+   ========================= */
+// ✅ استبدل دوال cleanPath / routePath بحيث تلغي الرموز مثل: /?(?=/|$)/i
+
+function listEndpoints(app) {
+  const routes = [];
+
+  const normalizeSlashes = (s) => s.replace(/\/+/g, '/');
+
+  // يحوّل Regex الخاص بالـ Router ل path نظيف (مثل: /parttec, /admin ...)
+  function cleanMountPath(layer) {
+    if (!layer?.regexp) return '';
+
+    let s = layer.regexp.toString();
+
+    // 1) شيل غلاف الـ regex
+    // مثال: /^\/parttec\/?(?=\/|$)/i  =>  /parttec
+    s = s
+      .replace(/^\/\^\\\//, '/')
+      .replace(/\\\/\?\(\?=\\\/\|\$\)\$\/i$/, '')  // شيل \/?(?=\/|$)$/i
+      .replace(/\$\/i$/, '')                       // احتياط
+      .replace(/\/i$/, '');
+
+    // 2) رجّع السلاشات طبيعية
+    s = s.replace(/\\\//g, '/');
+
+    // 3) شيل أي بقايا من: /?(?=/|$)
+    s = s.replace(/\/\?\(\?=\/\|\$\)/g, '');
+    s = s.replace(/\(\?=\/\|\$\)/g, '');
+    s = s.replace(/\/\?/g, ''); // لو بقيت
+
+    // 4) شيل ^ و $ لو بقوا
+    s = s.replace(/^\^/, '').replace(/\$$/, '');
+
+    // 5) تأكد أنه يبدأ بسلاش
+    if (s && !s.startsWith('/')) s = '/' + s;
+
+    return normalizeSlashes(s);
+  }
+
+  function walk(stack, basePath = '') {
+    stack.forEach((layer) => {
+      // Route مباشر
+      if (layer.route) {
+        const p = layer.route.path;
+        const fullPath = normalizeSlashes(
+          (basePath || '') + (p === '/' ? '' : p)
+        );
+
+        const methods = Object.keys(layer.route.methods)
+          .filter((m) => layer.route.methods[m])
+          .map((m) => m.toUpperCase());
+
+        methods.forEach((m) => routes.push({ method: m, path: fullPath || '/' }));
+        return;
+      }
+
+      // Router
+      if (layer.name === 'router' && layer.handle?.stack) {
+        const mount = cleanMountPath(layer);
+        const nextBase = normalizeSlashes((basePath || '') + (mount || ''));
+        walk(layer.handle.stack, nextBase);
+      }
+    });
+  }
+
+  walk(app._router?.stack || [], '');
+
+  // ✅ تجاهل تكرارات وتنسيق نهائي
+  const grouped = new Map();
+  routes
+    .map((r) => ({
+      method: r.method,
+      path: normalizeSlashes(r.path).replace(/\/$/, '') || '/', // شيل / آخر المسار
+    }))
+    .sort((a, b) => (a.path === b.path ? a.method.localeCompare(b.method) : a.path.localeCompare(b.path)))
+    .forEach(({ method, path }) => {
+      if (!grouped.has(path)) grouped.set(path, new Set());
+      grouped.get(path).add(method);
+    });
+
+  console.log('\n================= ✅ API ENDPOINTS =================');
+  [...grouped.entries()].forEach(([path, methodsSet]) => {
+    const methods = [...methodsSet].sort().join(', ');
+    console.log(`${methods.padEnd(22)} ${path}`);
+  });
+  console.log('====================================================\n');
+}
+/* ========================= */
 
 if (process.env.NODE_ENV !== 'test') {
   const PORT = process.env.PORT || 3001;
@@ -89,7 +186,11 @@ if (process.env.NODE_ENV !== 'test') {
     .connect(uri)
     .then(async () => {
       console.log('✅ تم الاتصال بقاعدة بيانات PartTec في MongoDB Atlas');
-      app.listen(PORT, () => console.log(`🚀 الخادم يعمل على المنفذ ${PORT}`));
+      app.listen(PORT, () => {
+        console.log(`🚀 الخادم يعمل على المنفذ ${PORT}`);
+        // ✅ اطبع بعد ما يشتغل السيرفر
+        listEndpoints(app);
+      });
       await seedData();
     })
     .catch((err) => console.error('❌ فشل الاتصال:', err));
