@@ -1,6 +1,6 @@
 const User = require('../models/user.model');
 const bcrypt = require('bcrypt');
-
+const DeletedUser = require('../models/DeletedUser');
 exports.updateUserLocation = async (req, res) => {
   try {
     const { userId } = req.params;
@@ -30,7 +30,7 @@ exports.updateUserLocation = async (req, res) => {
           },
         },
       },
-      { new: true }
+      { new: true },
     );
 
     if (!user) {
@@ -77,7 +77,10 @@ exports.getAllUsers = async (req, res) => {
 
 exports.getUserData = async (req, res) => {
   try {
-    const userData = await User.find({ role: 'user', _id: req.params.userId }).select('name email phoneNumber province');
+    const userData = await User.find({
+      role: 'user',
+      _id: req.params.userId,
+    }).select('name email phoneNumber province');
 
     // const user_id = users.map((u) => u._id);
 
@@ -101,7 +104,6 @@ exports.updateUserData = async (req, res) => {
   try {
     const { userId } = req.params;
 
-
     const allowed = ['name', 'email', 'phoneNumber', 'province'];
     const updates = {};
     for (const key of allowed) {
@@ -118,7 +120,7 @@ exports.updateUserData = async (req, res) => {
     const user = await User.findOneAndUpdate(
       { _id: userId, role: 'user' },
       { $set: updates },
-      { new: true, runValidators: true }
+      { new: true, runValidators: true },
     ).select('name email phoneNumber province role');
 
     if (!user) {
@@ -178,7 +180,7 @@ exports.putprands = async (req, res) => {
     const user = await User.findByIdAndUpdate(
       userId,
       { $addToSet: { prands: prand } },
-      { new: true }
+      { new: true },
     );
 
     if (!user) {
@@ -233,7 +235,8 @@ exports.getAllUsersforAdmin = async (req, res) => {
 exports.deleteUser = async (req, res) => {
   try {
     const { id } = req.params;
-    const user = await User.findByIdAndDelete(id);
+
+    const user = await User.findById(id);
 
     if (!user) {
       return res.status(404).json({
@@ -242,10 +245,27 @@ exports.deleteUser = async (req, res) => {
       });
     }
 
+    await DeletedUser.create({
+      originalUserId: user._id,
+      name: user.name,
+      companyName: user.companyName,
+      email: user.email,
+      password: user.password,
+      phoneNumber: user.phoneNumber,
+      createdAt: user.createdAt,
+      cars: user.cars,
+      prands: user.prands,
+      role: user.role,
+      province: user.province,
+      location: user.location,
+      provinceNorm: user.provinceNorm,
+    });
+
+    await User.findByIdAndDelete(id);
+
     res.json({
       success: true,
       message: '✅ تم حذف المستخدم بنجاح',
-      user,
     });
   } catch (err) {
     res.status(500).json({
