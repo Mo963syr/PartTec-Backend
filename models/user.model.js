@@ -1,32 +1,25 @@
 const mongoose = require('mongoose');
+const DeletedUser = require('./DeletedUser');
 
 const userSchema = new mongoose.Schema({
   name: {
     type: String,
     required: [true, 'يجب إدخال الاسم'],
   },
-  companyName: {
-    type: String,
-  },
+  companyName: String,
   email: {
     type: String,
     required: [true, 'يجب إدخال البريد الإلكتروني'],
     unique: true,
     lowercase: true,
-    match: [
-      /^[^\s@]+@[^\s@]+\.[^\s@]+$/,
-      'البريد الإلكتروني غير صالح. يرجى إدخال بريد إلكتروني صحيح.',
-    ],
   },
   password: {
     type: String,
     required: [true, 'يجب إدخال كلمة المرور'],
-    minlength: [6, 'يجب أن تكون كلمة المرور على الأقل 6 أحرف'],
   },
   phoneNumber: {
     type: String,
     required: [true, 'يجب إدخال رقم الموبايل'],
-    match: [/^(?:\+963|00963|0)?9\d{8}$/, 'رقم الموبايل السوري غير صالح'],
   },
   createdAt: {
     type: Date,
@@ -44,8 +37,7 @@ const userSchema = new mongoose.Schema({
   },
   role: {
     type: String,
-    required: true,
-    enum: ['user', 'seller', 'worker', 'delivery', 'mechanic'], // ✅ صححت spelling
+    enum: ['user', 'seller', 'worker', 'delivery', 'mechanic'],
     default: 'user',
   },
   province: {
@@ -58,24 +50,38 @@ const userSchema = new mongoose.Schema({
       enum: ['Point'],
       default: 'Point',
     },
-    coordinates: {
-      type: [Number],
-      validate: {
-        validator: function (val) {
-          // إذا فاضي أو غير موجود → اعتبره صحيح
-          if (!val || val.length === 0) return true;
-          return Array.isArray(val) && val.length === 2;
-        },
-        message: 'يجب تحديد إحداثيات صحيحة [lng, lat]',
-      },
-      required: false, 
-      default: undefined, 
-    },
+    coordinates: [Number],
   },
   provinceNorm: {
     type: String,
     default: '',
   },
 });
+userSchema.pre('findOneAndDelete', async function (next) {
+  try {
+    const user = await this.model.findOne(this.getFilter());
 
+    if (user) {
+      await DeletedUser.create({
+        originalUserId: user._id,
+        name: user.name,
+        companyName: user.companyName,
+        email: user.email,
+        password: user.password,
+        phoneNumber: user.phoneNumber,
+        createdAt: user.createdAt,
+        cars: user.cars,
+        prands: user.prands,
+        role: user.role === "delevery" ? "delivery" : user.role,
+        province: user.province,
+        location: user.location,
+        provinceNorm: user.provinceNorm,
+      });
+    }
+
+    next();
+  } catch (error) {
+    next(error);
+  }
+});
 module.exports = mongoose.models.User || mongoose.model('User', userSchema);

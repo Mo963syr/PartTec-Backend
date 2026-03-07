@@ -231,46 +231,28 @@ exports.getAllUsersforAdmin = async (req, res) => {
     });
   }
 };
-
 exports.deleteUser = async (req, res) => {
   try {
     const { id } = req.params;
 
-    const user = await User.findById(id);
+    const user = await User.findByIdAndDelete(id);
 
     if (!user) {
       return res.status(404).json({
         success: false,
-        message: '🚫 المستخدم غير موجود',
+        message: "🚫 المستخدم غير موجود",
       });
     }
 
-    await DeletedUser.create({
-      originalUserId: user._id,
-      name: user.name,
-      companyName: user.companyName,
-      email: user.email,
-      password: user.password,
-      phoneNumber: user.phoneNumber,
-      createdAt: user.createdAt,
-      cars: user.cars,
-      prands: user.prands,
-      role: user.role,
-      province: user.province,
-      location: user.location,
-      provinceNorm: user.provinceNorm,
-    });
-
-    await User.findByIdAndDelete(id);
-
     res.json({
       success: true,
-      message: '✅ تم حذف المستخدم بنجاح',
+      message: "✅ تم حذف المستخدم",
     });
+
   } catch (err) {
     res.status(500).json({
       success: false,
-      message: '❌ فشل في حذف المستخدم',
+      message: "❌ فشل في حذف المستخدم",
       error: err.message,
     });
   }
