@@ -17,6 +17,17 @@ const userSchema = new mongoose.Schema({
     type: String,
     required: [true, 'يجب إدخال كلمة المرور'],
   },
+   profileImage: {
+      type: String,
+      required: false, 
+      validate: {
+        validator: function (v) {
+     
+          return !v || /^(https?:\/\/.+)$/.test(v);
+        },
+        message: (props) => `${props.value} ليس رابط صحيح للصورة!`,
+      },
+    },
   phoneNumber: {
     type: String,
     required: [true, 'يجب إدخال رقم الموبايل'],

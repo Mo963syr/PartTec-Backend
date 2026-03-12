@@ -1,6 +1,73 @@
 const User = require('../models/user.model');
 const bcrypt = require('bcrypt');
 const DeletedUser = require('../models/DeletedUser');
+
+const cloudinary = require('../utils/cloudinary');
+
+exports.addImageProfile = async (req, res) => {
+  try {
+    const { userId } = req.params;
+
+    if (!req.file) {
+      return res.status(400).json({
+        success: false,
+        message: '⚠️ يجب تحميل صورة',
+      });
+    }
+
+    const result = await cloudinary.uploader.upload(req.file.path);
+    const imageUrl = result.secure_url;
+
+    const user = await User.findByIdAndUpdate(
+      userId,
+      { $set: { profileImage: imageUrl } },
+      { new: true },
+    );
+
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: '❌ المستخدم غير موجود',
+      });
+    }
+
+    return res.status(200).json({
+      success: true,
+      message: '✅ تم تحديث صورة الملف الشخصي بنجاح',
+      user,
+    });
+  } catch (err) {
+    console.error('❌ خطأ في تحديث صورة الملف الشخصي:', err);
+    return res.status(500).json({
+      success: false,
+      message: 'حدث خطأ أثناء تحديث صورة الملف الشخصي',
+    });
+  }
+};
+exports.getProfileImage = async (req, res) => {
+  try {
+    const { userId } = req.params;
+    const user = await User.findById(userId).select('profileImage');
+
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: '❌ المستخدم غير موجود',
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      profileImage: user.profileImage,
+    });
+  } catch (err) {
+    console.error('❌ خطأ في جلب صورة الملف الشخصي:', err);
+    res.status(500).json({
+      success: false,
+      message: 'حدث خطأ أثناء جلب صورة الملف الشخصي',
+    });
+  }
+};
 exports.updateUserLocation = async (req, res) => {
   try {
     const { userId } = req.params;
@@ -240,19 +307,18 @@ exports.deleteUser = async (req, res) => {
     if (!user) {
       return res.status(404).json({
         success: false,
-        message: "🚫 المستخدم غير موجود",
+        message: '🚫 المستخدم غير موجود',
       });
     }
 
     res.json({
       success: true,
-      message: "✅ تم حذف المستخدم",
+      message: '✅ تم حذف المستخدم',
     });
-
   } catch (err) {
     res.status(500).json({
       success: false,
-      message: "❌ فشل في حذف المستخدم",
+      message: '❌ فشل في حذف المستخدم',
       error: err.message,
     });
   }
