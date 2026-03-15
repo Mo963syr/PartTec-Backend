@@ -118,52 +118,59 @@ exports.createOrder = async (req, res) => {
 exports.deleteorder = async (req, res) => {
   try {
     const { orderId } = req.params;
+
     const order = await Order.findById(orderId);
+    if (!order) {
+      return res.status(404).json({ ok: false, error: 'Order not found' });
+    }
+    const minutesFromCreate = (Date.now() - order.createdAt.getTime()) / 60000;
+const minutesFromUpdate = (Date.now() - order.updatedAt.getTime()) / 60000;
+
+console.log("minutes from create:", minutesFromCreate);
+console.log("minutes from update:", minutesFromUpdate);
+
+    // منع الحذف بعد 30 دقيقة من إنشاء الطلب
     if (
       order.createdAt &&
-      Date.now() - new Date(order.createdAt).getTime() > 30 * 60 * 1000 &&  order.status == 'مؤكد'
+     (Date.now() + 3 * 60 * 60 * 1000) - new Date(order.createdAt).getTime() > 30 * 60 * 1000 &&
+      order.status === 'مؤكد'
     ) {
       return res
         .status(400)
         .json({ ok: false, error: 'cannot_delete_after_30_minutes' });
     }
+
+    // منع الحذف بعد 20 دقيقة من الموافقة
     if (
-      order.status == 'موافق عليها' &&
-      Date.now() - new Date(order.updatedAt).getTime() > 20 * 60 * 1000
+      order.status === 'موافق عليها' &&
+     (Date.now() + 3 * 60 * 60 * 1000) - new Date(order.updatedAt).getTime() > 20 * 60 * 1000
     ) {
-      {
-        return res.status(400).json({
-          ok: false,
-          error: 'cannot_delete_order_after_20_minutes_confirmation',
-        });
-      }
-    }
-    if (
-      order.status == 'تم التوصيل' 
-    ) {
-      {
-        return res.status(400).json({
-          ok: false,
-          error: 'cannot_delete_delivered_order',
-        });
-      }
+      return res.status(400).json({
+        ok: false,
+        error: 'cannot_delete_order_after_20_minutes_confirmation',
+      });
     }
 
-    const deletedOrder = await Order.findByIdAndDelete(orderId);
-
-    if (!deletedOrder) {
-      return res.status(404).json({ ok: false, error: 'Order not found' });
+    // منع حذف الطلب الذي تم توصيله
+    if (order.status === 'تم التوصيل') {
+      return res.status(400).json({
+        ok: false,
+        error: 'cannot_delete_delivered_order',
+      });
     }
 
-    return res
-      .status(200)
-      .json({ ok: true, message: 'Order deleted successfully' });
+    await Order.findByIdAndDelete(orderId);
+
+    return res.status(200).json({
+      ok: true,
+      message: 'Order deleted successfully',
+    });
+
   } catch (err) {
     console.error('deleteorder error:', err);
     return res.status(500).json({ ok: false, error: 'failed_to_delete_order' });
   }
 };
-
 exports.getOrderStatus = async (req, res) => {
   try {
     const order = await Order.findById(req.params.id);
