@@ -12,7 +12,7 @@ const {
   getUserData,
   updateUserData,
   addImageProfile,
-    getProfileImage
+  getProfileImage,
 } = require('../controllers/user.Controller');
 const { register, login } = require('../controllers/auth.controller');
 const upload = multer({ dest: 'uploads/' });

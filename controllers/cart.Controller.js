@@ -48,6 +48,31 @@ exports.getCartItemsForSeller = async (req, res) => {
     });
   }
 };
+exports.deleteCartItem = async (req, res) => {  
+  try {    const { cartId } = req.params;
+
+    const deletedItem = await cart.findByIdAndDelete(cartId);
+
+    if (!deletedItem) {
+      return res.status(404).json({
+        success: false,
+        message: '⚠️ عنصر السلة غير موجود',
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      message: '✅ تم حذف عنصر السلة',
+      deletedItem,
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: 'فشل في حذف عنصر السلة',
+      error: error.message,
+    });
+  }
+};
 
 exports.addPart = async (req, res) => {
   try {
