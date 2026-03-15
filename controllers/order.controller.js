@@ -98,7 +98,7 @@ exports.createOrder = async (req, res) => {
     });
 
     const results = await Promise.allSettled(
-      supplierIds.map((sid) => notifySupplierOrderRequested(sid, orderDoc._id))
+      supplierIds.map((sid) => notifySupplierOrderRequested(sid, orderDoc._id)),
     );
 
     const sent = results.filter((r) => r.status === 'fulfilled').length;
@@ -113,6 +113,54 @@ exports.createOrder = async (req, res) => {
   } catch (err) {
     console.error('createOrder error:', err);
     return res.status(500).json({ ok: false, error: 'failed_to_create_order' });
+  }
+};
+exports.deleteorder = async (req, res) => {
+  try {
+    const { orderId } = req.params;
+    const order = await Order.findById(orderId);
+    if (
+      order.createdAt &&
+      Date.now() - new Date(order.createdAt).getTime() > 30 * 60 * 1000 &&  order.status == 'مؤكد'
+    ) {
+      return res
+        .status(400)
+        .json({ ok: false, error: 'cannot_delete_after_30_minutes' });
+    }
+    if (
+      order.status == 'موافق عليها' &&
+      Date.now() - new Date(order.updatedAt).getTime() > 20 * 60 * 1000
+    ) {
+      {
+        return res.status(400).json({
+          ok: false,
+          error: 'cannot_delete_order_after_20_minutes_confirmation',
+        });
+      }
+    }
+    if (
+      order.status == 'تم التوصيل' 
+    ) {
+      {
+        return res.status(400).json({
+          ok: false,
+          error: 'cannot_delete_delivered_order',
+        });
+      }
+    }
+
+    const deletedOrder = await Order.findByIdAndDelete(orderId);
+
+    if (!deletedOrder) {
+      return res.status(404).json({ ok: false, error: 'Order not found' });
+    }
+
+    return res
+      .status(200)
+      .json({ ok: true, message: 'Order deleted successfully' });
+  } catch (err) {
+    console.error('deleteorder error:', err);
+    return res.status(500).json({ ok: false, error: 'failed_to_delete_order' });
   }
 };
 
@@ -260,7 +308,7 @@ exports.getUserBrandOrders = async (req, res) => {
 exports.addOrder = async (req, res) => {
   const start = Date.now();
   try {
-    const { userId, coordinates, fee } = req.body;
+    const { userId, coordinates,fee } = req.body;
 
     if (!mongoose.Types.ObjectId.isValid(userId)) {
       return res.status(400).json({
@@ -294,13 +342,13 @@ exports.addOrder = async (req, res) => {
       });
     }
 
-    if (typeof fee !== 'number' || fee < 0) {
-      return res.status(400).json({
-        success: false,
-        message: '⚠️ قيمة رسوم التوصيل غير صالحة',
-        executionTime: `${Date.now() - start} ms`,
-      });
-    }
+    // if (typeof fee !== 'number' || fee < 0) {
+    //   return res.status(400).json({
+    //     success: false,
+    //     message: '⚠️ قيمة رسوم التوصيل غير صالحة',
+    //     executionTime: `${Date.now() - start} ms`,
+    //   });
+    // }
 
     const userCartItems = await Cart.find({
       userId,
@@ -355,7 +403,7 @@ exports.addOrder = async (req, res) => {
       Cart.updateMany({ _id: { $in: cartIds } }, { $set: { status: 'مؤكد' } }),
       OrderSummary.updateMany(
         { _id: { $in: summaryIds } },
-        { $set: { status: 'مؤكد' } }
+        { $set: { status: 'مؤكد' } },
       ),
     ]);
 
@@ -363,7 +411,7 @@ exports.addOrder = async (req, res) => {
       ...new Set(
         userCartItems
           .filter((item) => item.partId && item.partId.sellerId)
-          .map((item) => item.partId.sellerId.toString())
+          .map((item) => item.partId.sellerId.toString()),
       ),
     ];
 
@@ -612,7 +660,7 @@ exports.getOrdersForSeller = async (req, res) => {
           })),
           totalAmount: sellerParts.reduce(
             (sum, item) => sum + item.quantity * (item.partId.price || 0),
-            0
+            0,
           ),
         };
       })
@@ -621,7 +669,7 @@ exports.getOrdersForSeller = async (req, res) => {
     const fromSummary = ordersWithSummary
       .map((order) => {
         const matchedSummaries = order.summaryIds.filter(
-          (s) => s.offer && s.order
+          (s) => s.offer && s.order,
         );
 
         if (matchedSummaries.length === 0) return null;
@@ -651,14 +699,14 @@ exports.getOrdersForSeller = async (req, res) => {
           })),
           totalAmount: matchedSummaries.reduce(
             (sum, s) => sum + (s.offer?.price || 0),
-            0
+            0,
           ),
         };
       })
       .filter(Boolean);
 
     const allOrders = [...fromCart, ...fromSummary].sort(
-      (a, b) => new Date(b.createdAt) - new Date(a.createdAt)
+      (a, b) => new Date(b.createdAt) - new Date(a.createdAt),
     );
 
     res.status(200).json({
@@ -739,7 +787,7 @@ exports.viewspicificordercompleted = async (req, res) => {
           })),
           totalAmount: sellerParts.reduce(
             (sum, item) => sum + item.quantity * (item.partId.price || 0),
-            0
+            0,
           ),
         };
       })
@@ -748,7 +796,7 @@ exports.viewspicificordercompleted = async (req, res) => {
     const fromSummary = ordersWithSummary
       .map((order) => {
         const matchedSummaries = order.summaryIds.filter(
-          (s) => s.offer && s.order
+          (s) => s.offer && s.order,
         );
 
         if (matchedSummaries.length === 0) return null;
@@ -778,14 +826,14 @@ exports.viewspicificordercompleted = async (req, res) => {
           })),
           totalAmount: matchedSummaries.reduce(
             (sum, s) => sum + (s.offer?.price || 0),
-            0
+            0,
           ),
         };
       })
       .filter(Boolean);
 
     const allOrders = [...fromCart, ...fromSummary].sort(
-      (a, b) => new Date(b.createdAt) - new Date(a.createdAt)
+      (a, b) => new Date(b.createdAt) - new Date(a.createdAt),
     );
 
     res.status(200).json({
@@ -833,7 +881,7 @@ exports.updateOrderStatus = async (req, res) => {
 
     await Cart.updateMany(
       { _id: { $in: order.cartIds } },
-      { $set: { status } }
+      { $set: { status } },
     );
 
     res.status(200).json({

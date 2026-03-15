@@ -1,6 +1,6 @@
 // models/Order.js
 const mongoose = require('mongoose');
-
+const moment = require('moment-timezone');
 const orderSchema = new mongoose.Schema(
   {
     userId: {
@@ -71,7 +71,7 @@ const orderSchema = new mongoose.Schema(
     },
 
     payment: {
-      paymentId: { type: String }, 
+      paymentId: { type: String },
       status: {
         type: String,
         enum: ['pending', 'paid', 'failed', 'canceled'],
@@ -79,7 +79,11 @@ const orderSchema = new mongoose.Schema(
       },
     },
   },
-  { timestamps: true }
+  {
+    timestamps: {
+      currentTime: () => new Date(Date.now() + 3 * 60 * 60 * 1000),
+    },
+  },
 );
 
 orderSchema.index({ location: '2dsphere' });

@@ -58,7 +58,10 @@ app.use((req, res, next) => {
   const origin = req.headers.origin;
   if (origin) res.setHeader('Access-Control-Allow-Origin', origin);
   res.setHeader('Vary', 'Origin');
-  res.setHeader('Access-Control-Allow-Methods', 'GET,POST,PUT,PATCH,DELETE,OPTIONS');
+  res.setHeader(
+    'Access-Control-Allow-Methods',
+    'GET,POST,PUT,PATCH,DELETE,OPTIONS',
+  );
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
   res.setHeader('Access-Control-Allow-Credentials', 'true');
 
@@ -77,7 +80,7 @@ app.use(
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization'],
     credentials: true,
-  })
+  }),
 );
 
 app.options('*', cors());
@@ -107,8 +110,8 @@ function listEndpoints(app) {
     // مثال: /^\/parttec\/?(?=\/|$)/i  =>  /parttec
     s = s
       .replace(/^\/\^\\\//, '/')
-      .replace(/\\\/\?\(\?=\\\/\|\$\)\$\/i$/, '')  // شيل \/?(?=\/|$)$/i
-      .replace(/\$\/i$/, '')                       // احتياط
+      .replace(/\\\/\?\(\?=\\\/\|\$\)\$\/i$/, '') // شيل \/?(?=\/|$)$/i
+      .replace(/\$\/i$/, '') // احتياط
       .replace(/\/i$/, '');
 
     // 2) رجّع السلاشات طبيعية
@@ -134,14 +137,16 @@ function listEndpoints(app) {
       if (layer.route) {
         const p = layer.route.path;
         const fullPath = normalizeSlashes(
-          (basePath || '') + (p === '/' ? '' : p)
+          (basePath || '') + (p === '/' ? '' : p),
         );
 
         const methods = Object.keys(layer.route.methods)
           .filter((m) => layer.route.methods[m])
           .map((m) => m.toUpperCase());
 
-        methods.forEach((m) => routes.push({ method: m, path: fullPath || '/' }));
+        methods.forEach((m) =>
+          routes.push({ method: m, path: fullPath || '/' }),
+        );
         return;
       }
 
@@ -163,7 +168,11 @@ function listEndpoints(app) {
       method: r.method,
       path: normalizeSlashes(r.path).replace(/\/$/, '') || '/', // شيل / آخر المسار
     }))
-    .sort((a, b) => (a.path === b.path ? a.method.localeCompare(b.method) : a.path.localeCompare(b.path)))
+    .sort((a, b) =>
+      a.path === b.path
+        ? a.method.localeCompare(b.method)
+        : a.path.localeCompare(b.path),
+    )
     .forEach(({ method, path }) => {
       if (!grouped.has(path)) grouped.set(path, new Set());
       grouped.get(path).add(method);
@@ -177,7 +186,8 @@ function listEndpoints(app) {
   console.log('====================================================\n');
 }
 /* ========================= */
-
+process.env.TZ = 'Europe/Istanbul';
+mongoose.set('strictQuery', true);
 if (process.env.NODE_ENV !== 'test') {
   const PORT = process.env.PORT || 3001;
   const uri = process.env.MONGO_URI;

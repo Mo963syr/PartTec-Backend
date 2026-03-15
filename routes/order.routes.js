@@ -9,6 +9,7 @@ const {
   viewspicificorderitem,
   getUserBrandOrders,
   viewspicificordercompleted,getOrdersWithAverageRatings,getOrderStatus,updateOrderStatuss
+  ,deleteorder
 } = require('../controllers/order.controller');
 
 const { addspicificorder } = require('../controllers/part.Controller');
@@ -28,6 +29,6 @@ router.get('/viewspicificordercompleted/:userId', viewspicificordercompleted);
 router.get('/getOrdersWithAverageRatings', getOrdersWithAverageRatings);
 router.get("/:id/status", getOrderStatus);
 router.put("/:id/status", updateOrderStatuss);
-
+router.delete('/deleteorder/:orderId', deleteorder);
 
 module.exports = router;
