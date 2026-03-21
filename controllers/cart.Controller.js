@@ -48,8 +48,9 @@ exports.getCartItemsForSeller = async (req, res) => {
     });
   }
 };
-exports.deleteCartItem = async (req, res) => {  
-  try {    const { cartId } = req.params;
+exports.deleteCartItem = async (req, res) => {
+  try {
+    const { cartId } = req.params;
 
     const deletedItem = await cart.findByIdAndDelete(cartId);
 
@@ -234,42 +235,84 @@ exports.viewcartitem = async (req, res) => {
   }
 };
 
-exports.updateCartStatus = async (req, res) => {
+exports.updateCartItem = async (req, res) => {
   try {
     const { cartId } = req.params;
-    const { status } = req.body;
+    const updates = { ...req.body };
 
-    const allowedStatuses = ['قيد المعالجة', 'مؤكد', 'ملغي', 'على الطريق'];
-    if (!allowedStatuses.includes(status)) {
-      return res
-        .status(400)
-        .json({ success: false, message: '❌ حالة غير صالحة' });
+    delete updates._id;
+    delete updates.createdAt;
+    delete updates.updatedAt;
+    delete updates.__v;
+
+    if (updates.status) {
+      const allowedStatuses = ['قيد المعالجة', 'مؤكد', 'ملغي', 'على الطريق'];
+
+      if (!allowedStatuses.includes(updates.status)) {
+        return res.status(400).json({
+          success: false,
+          message: '❌ حالة غير صالحة',
+        });
+      }
+    }
+
+    const cartItem = await cart.findById(cartId).populate('partId userId');
+
+    if (!cartItem) {
+      return res.status(404).json({
+        success: false,
+        message: '❌ لم يتم العثور على العنصر',
+      });
+    }
+
+    if (updates.quantity !== undefined) {
+      const newQuantity = Number(updates.quantity);
+
+      if (!Number.isInteger(newQuantity) || newQuantity < 1) {
+        return res.status(400).json({
+          success: false,
+          message: '❌ الكمية يجب أن تكون رقمًا صحيحًا أكبر من 0',
+        });
+      }
+
+      const availableCount = Number(cartItem.partId?.count ?? 0);
+
+      if (newQuantity > availableCount) {
+        return res.status(400).json({
+          success: false,
+          message: `❌ الكمية المطلوبة أكبر من المتوفر في المخزون`,
+          availableCount,
+        });
+      }
+
+      updates.quantity = newQuantity;
+    }
+
+    if (Object.keys(updates).length === 0) {
+      return res.status(400).json({
+        success: false,
+        message: '⚠️ لم يتم إرسال أي بيانات للتحديث',
+      });
     }
 
     const updated = await cart
-      .findByIdAndUpdate(cartId, { status }, { new: true })
+      .findByIdAndUpdate(
+        cartId,
+        { $set: updates },
+        { new: true, runValidators: true },
+      )
       .populate('partId userId');
-    //  const updateOrder=await Order.findByIdAndUpdate(
-    //     cartId,
-    //     { status },
-    //     { new: true }
-    //   ).populate('partId userId');
-    if (!updated) {
-      return res
-        .status(404)
-        .json({ success: false, message: '❌ لم يتم العثور على العنصر' });
-    }
 
     res.status(200).json({
       success: true,
-      message: '✅ تم تحديث حالة القطعة',
+      message: '✅ تم تحديث بيانات القطعة',
       updatedItem: updated,
     });
   } catch (error) {
-    console.error(error);
+    console.error('updateCartItem error:', error);
     res.status(500).json({
       success: false,
-      message: '❌ فشل في تحديث الحالة',
+      message: '❌ فشل في تحديث البيانات',
       error: error.message,
     });
   }
