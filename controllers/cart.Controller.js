@@ -256,7 +256,7 @@ exports.updateCartItem = async (req, res) => {
       }
     }
 
-    const cartItem = await cart.findById(cartId).populate('partId userId');
+    const cartItem = await Cart.findById(cartId);
 
     if (!cartItem) {
       return res.status(404).json({
@@ -275,12 +275,29 @@ exports.updateCartItem = async (req, res) => {
         });
       }
 
-      const availableCount = Number(cartItem.partId?.count ?? 0);
+      const part = await Part.findById(cartItem.partId);
+
+      if (!part) {
+        return res.status(404).json({
+          success: false,
+          message: '❌ لم يتم العثور على القطعة المرتبطة بالسلة',
+        });
+      }
+
+      const availableCount = Number(part.count ?? 0);
+
+      if (availableCount <= 0) {
+        return res.status(400).json({
+          success: false,
+          message: '❌ هذه القطعة غير متوفرة حالياً',
+          availableCount,
+        });
+      }
 
       if (newQuantity > availableCount) {
         return res.status(400).json({
           success: false,
-          message: '❌ الكمية المطلوبة أكبر من المتوفر في المخزون',
+          message: `❌ لا يمكن طلب أكثر من ${availableCount}`,
           availableCount,
         });
       }
@@ -295,13 +312,11 @@ exports.updateCartItem = async (req, res) => {
       });
     }
 
-    const updated = await cart
-      .findByIdAndUpdate(
-        cartId,
-        { $set: updates },
-        { new: true, runValidators: true },
-      )
-      .populate('partId userId');
+    const updated = await Cart.findByIdAndUpdate(
+      cartId,
+      { $set: updates },
+      { new: true, runValidators: true },
+    ).populate('partId userId');
 
     if (!updated) {
       return res.status(404).json({
@@ -310,14 +325,15 @@ exports.updateCartItem = async (req, res) => {
       });
     }
 
-    res.status(200).json({
+    return res.status(200).json({
       success: true,
       message: '✅ تم تحديث بيانات القطعة',
       updatedItem: updated,
+      availableCount: updated.partId?.count ?? 0,
     });
   } catch (error) {
     console.error('updateCartItem error:', error);
-    res.status(500).json({
+    return res.status(500).json({
       success: false,
       message: '❌ فشل في تحديث البيانات',
       error: error.message,
