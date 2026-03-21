@@ -280,7 +280,7 @@ exports.updateCartItem = async (req, res) => {
       if (newQuantity > availableCount) {
         return res.status(400).json({
           success: false,
-          message: `❌ الكمية المطلوبة أكبر من المتوفر في المخزون`,
+          message: '❌ الكمية المطلوبة أكبر من المتوفر في المخزون',
           availableCount,
         });
       }
@@ -302,6 +302,13 @@ exports.updateCartItem = async (req, res) => {
         { new: true, runValidators: true },
       )
       .populate('partId userId');
+
+    if (!updated) {
+      return res.status(404).json({
+        success: false,
+        message: '❌ لم يتم العثور على العنصر بعد التحديث',
+      });
+    }
 
     res.status(200).json({
       success: true,
