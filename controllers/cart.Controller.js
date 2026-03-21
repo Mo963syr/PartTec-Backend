@@ -235,6 +235,7 @@ exports.viewcartitem = async (req, res) => {
   }
 };
 
+
 exports.updateCartItem = async (req, res) => {
   try {
     const { cartId } = req.params;
@@ -256,7 +257,7 @@ exports.updateCartItem = async (req, res) => {
       }
     }
 
-    const cartItem = await Cart.findById(cartId);
+    const cartItem = await cart.findById(cartId);
 
     if (!cartItem) {
       return res.status(404).json({
@@ -312,7 +313,7 @@ exports.updateCartItem = async (req, res) => {
       });
     }
 
-    const updated = await Cart.findByIdAndUpdate(
+    const updated = await cart.findByIdAndUpdate(
       cartId,
       { $set: updates },
       { new: true, runValidators: true },
