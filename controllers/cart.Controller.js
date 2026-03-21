@@ -341,3 +341,35 @@ exports.updateCartItem = async (req, res) => {
     });
   }
 };
+exports.getCartItemStock = async (req, res) => {
+  try {
+    const { cartId } = req.params;
+
+    const cartItem = await cart.findById(cartId);
+    if (!cartItem) {
+      return res.status(404).json({
+        success: false,
+        message: '❌ العنصر غير موجود',
+      });
+    }
+
+    const part = await Part.findById(cartItem.partId);
+    if (!part) {
+      return res.status(404).json({
+        success: false,
+        message: '❌ القطعة غير موجودة',
+      });
+    }
+
+    return res.status(200).json({
+      success: true,
+      count: part.count ?? 0,
+    });
+  } catch (error) {
+    return res.status(500).json({
+      success: false,
+      message: '❌ فشل في جلب المخزون',
+      error: error.message,
+    });
+  }
+};
