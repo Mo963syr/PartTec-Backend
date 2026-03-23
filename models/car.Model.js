@@ -13,14 +13,19 @@ const carSchema = new mongoose.Schema({
     type: Number,
     required: [true, ' يجب إدخال سنة الصنع'],
   },
-  fuelType: {
+  serialNumber: {
     type: String,
-    enum: {
-      values: ['ديزل', 'بترول'],
-      message: ' نوع الوقود يجب أن يكون إما "ديزل" أو "بترول" فقط',
-    },
-    required: [true, ' يجب اختيار نوع الوقود'],
+    unique: [true, ' يجب أن يكون رقم الشاص فريدًا'],
+    required: [true, ' يجب إدخال رقم الشاص'],
   },
+  // fuelType: {
+  //   type: String,   
+  //   enum: {
+  //     values: ['ديزل', 'بترول'],
+  //     message: ' نوع الوقود يجب أن يكون إما "ديزل" أو "بترول" فقط',
+  //   },
+  //   required: [true, ' يجب اختيار نوع الوقود'],
+  // },
   user: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User',

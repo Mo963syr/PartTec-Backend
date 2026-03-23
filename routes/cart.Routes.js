@@ -14,6 +14,6 @@ router.post('/addToCart', addPart);
 router.get('/viewcartitem/:userId', viewcartitem);
 router.get('/getCartItemsForSeller/:sellerId', getCartItemsForSeller);
 router.patch('/updateCartItem/:cartId', updateCartItem);
-router.get('/getCartItemStock/:cartId', getCartItemStock);
+  router.get('/getCartItemStock/:cartId', getCartItemStock);
 router.delete('/deleteCartItem/:cartId', deleteCartItem);
 module.exports = router;

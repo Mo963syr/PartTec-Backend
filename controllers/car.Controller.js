@@ -6,7 +6,7 @@ exports.addCar = async (req, res) => {
   const { manufacturer, model, year, fuelType, user } = req.body;
 
   try {
-    const newCar = new Car({ manufacturer, model, year, fuelType, user });
+    const newCar = new Car({ manufacturer, model, year, serialNumber, user });
     await newCar.save();
     res.status(201).json({ message: '🚗 تم إضافة السيارة بنجاح', car: newCar });
   } catch (error) {
@@ -29,7 +29,7 @@ exports.viewcar = async (req, res) => {
 exports.addCarToUser = async (req, res) => {
   try {
     const userId = req.params.userId;
-    const { manufacturer, model, year, fuelType } = req.body;
+    const { manufacturer, model, year, serialNumber } = req.body;
 
     const user = await User.findById(userId);
     if (!user) {
@@ -40,7 +40,7 @@ exports.addCarToUser = async (req, res) => {
       manufacturer: manufacturer ? manufacturer.toLowerCase() : null,
       model: model ? model.toLowerCase() : null,
       year: year ? parseInt(year) : null,
-      fuelType: fuelType ? fuelType.toLowerCase() : null,
+      serialNumber: serialNumber ? serialNumber.toLowerCase() : null,
       user: userId,
     });
 
