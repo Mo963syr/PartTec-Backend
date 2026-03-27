@@ -399,6 +399,11 @@ function normalizeText(text = '') {
 }
 
 
+const {
+  normalizeManufacturer,
+  normalizeModel,
+} = require('../utils/normalization');
+
 exports.getCompatibleParts = async (req, res) => {
   try {
     const { userid } = req.params;
@@ -427,10 +432,37 @@ exports.getCompatibleParts = async (req, res) => {
       });
     }
 
-    const orConditions = user.cars.map((car) => ({
-      manufacturerNormalized: car.manufacturerNormalized,
-      modelNormalized: car.modelNormalized,
-    }));
+    const orConditions = user.cars
+      .map((car) => {
+        const manufacturerNormalized =
+          car.manufacturerNormalized ||
+          normalizeManufacturer(car.manufacturer);
+
+        const modelNormalized =
+          car.modelNormalized ||
+          normalizeModel(car.model);
+
+        if (!manufacturerNormalized || !modelNormalized) return null;
+
+        return {
+          manufacturerNormalized,
+          modelNormalized,
+        };
+      })
+      .filter(Boolean);
+
+    console.log('userCars:', user.cars);
+    console.log('orConditions:', orConditions);
+
+    if (orConditions.length === 0) {
+      return res.status(200).json({
+        success: true,
+        userCars: user.cars,
+        compatibleParts: [],
+        meta: { totalParts: 0 },
+        message: 'لا توجد بيانات مطابقة صالحة للسيارات',
+      });
+    }
 
     const compatibleParts = await Part.find({
       count: { $gt: 0 },
