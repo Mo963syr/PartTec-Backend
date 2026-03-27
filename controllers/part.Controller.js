@@ -7,7 +7,6 @@ const mongoose = require('mongoose');
 const XLSX = require('xlsx');
 const fs = require('fs');
 const path = require('path');
-const { count } = require('console');
 
 const express = require('express');
 const axios = require('axios');
@@ -399,65 +398,6 @@ function normalizeText(text = '') {
     .replace(/[-_]/g, '');
 }
 
-const manufacturerAliases = {
-  audi: ['audi', 'أودي', 'اودي'],
-  bmw: ['bmw', 'بي ام دبليو', 'بى ام دبليو', 'بيم', 'بي ام'],
-  mercedes: ['mercedes', 'mercedes-benz', 'مرسيدس', 'مرسيدس بنز'],
-  toyota: ['toyota', 'تويوتا'],
-  hyundai: ['hyundai', 'هيونداي', 'هونداي'],
-  kia: ['kia', 'كيا'],
-  nissan: ['nissan', 'نيسان'],
-  honda: ['honda', 'هوندا'],
-  ford: ['ford', 'فورد'],
-  chevrolet: ['chevrolet', 'chevy', 'شيفروليه', 'شفر', 'شيفر'],
-  volkswagen: ['volkswagen', 'vw', 'فولكس فاجن', 'فولكس', 'فاجن'],
-  renault: ['renault', 'رينو'],
-  peugeot: ['peugeot', 'بيجو'],
-  fiat: ['fiat', 'فيات'],
-  mazda: ['mazda', 'مازدا'],
-  mitsubishi: ['mitsubishi', 'ميتسوبيشي'],
-};
-
-const modelAliases = {
-  elantra: ['elantra', 'النترا', 'الينترا'],
-  sonata: ['sonata', 'سوناتا'],
-  accent: ['accent', 'اكسنت', 'أكسنت'],
-  cerato: ['cerato', 'سيراتو'],
-  optima: ['optima', 'اوبتيما', 'أوبتيما'],
-  sportage: ['sportage', 'سبورتاج'],
-  tucson: ['tucson', 'توسان'],
-  corolla: ['corolla', 'كورولا'],
-  camry: ['camry', 'كامري'],
-  yaris: ['yaris', 'يارس'],
-  civic: ['civic', 'سيفيك'],
-  accord: ['accord', 'اكورد', 'أكورد'],
-  sunny: ['sunny', 'صني'],
-  altima: ['altima', 'التيما'],
-  patrol: ['patrol', 'باترول'],
-  q5: ['q5', 'كيو5', 'كيو 5'],
-  a4: ['a4', 'اي4', 'a 4', 'اي 4'],
-};
-
-function getAliasGroup(value, aliasesMap) {
-  const normalizedValue = normalizeText(value);
-
-  for (const key in aliasesMap) {
-    const normalizedAliases = aliasesMap[key].map(normalizeText);
-    if (normalizedAliases.includes(normalizedValue)) {
-      return aliasesMap[key];
-    }
-  }
-
-  return [value];
-}
-
-function buildInsensitiveRegexList(values = []) {
-  return values.map(
-    (v) =>
-      new RegExp(`^${v.trim().replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`, 'i'),
-  );
-}
-
 exports.getCompatibleParts = async (req, res) => {
   try {
     const { userid } = req.params;
@@ -471,10 +411,14 @@ exports.getCompatibleParts = async (req, res) => {
 
     const user = await User.findById(userid)
       .select('cars')
-      .populate('cars', 'manufacturer model year');
+      .populate(
+        'cars',
+        'manufacturer model year manufacturerNormalized modelNormalized'
+      );
 
     if (!user || !user.cars || user.cars.length === 0) {
-      const parts = await part.find({ count: { $gt: 0 } });
+      const parts = await Part.find({ count: { $gt: 0 } }).sort({ price: 1 });
+
       return res.status(200).json({
         success: true,
         compatibleParts: parts,
@@ -482,26 +426,17 @@ exports.getCompatibleParts = async (req, res) => {
       });
     }
 
-    const orConditions = user.cars.map((car) => {
-      const manufacturerList = getAliasGroup(
-        car.manufacturer,
-        manufacturerAliases,
-      );
-      const modelList = getAliasGroup(car.model, modelAliases);
+    const orConditions = user.cars.map((car) => ({
+      manufacturerNormalized: car.manufacturerNormalized,
+      modelNormalized: car.modelNormalized,
+    }));
 
-      return {
-        manufacturer: { $in: buildInsensitiveRegexList(manufacturerList) },
-        model: { $in: buildInsensitiveRegexList(modelList) },
-      };
-    });
-
-    const compatibleParts = await part
-      .find({
-        count: { $gt: 0 },
-        $or: orConditions,
-      })
+    const compatibleParts = await Part.find({
+      count: { $gt: 0 },
+      $or: orConditions,
+    })
       .select(
-        'name manufacturer serialNumber model year category status price imageUrl count',
+        'name manufacturer manufacturerNormalized serialNumber model modelNormalized year category status price imageUrl count'
       )
       .sort({ price: 1 });
 
@@ -512,8 +447,10 @@ exports.getCompatibleParts = async (req, res) => {
         id: item._id,
         name: item.name,
         manufacturer: item.manufacturer,
+        manufacturerNormalized: item.manufacturerNormalized,
         serialNumber: item.serialNumber,
         model: item.model,
+        modelNormalized: item.modelNormalized,
         year: item.year,
         category: item.category,
         status: item.status,
@@ -772,9 +709,11 @@ exports.addPart = async (req, res) => {
       serialNumber,
       description,
       user,
+      compatibleCars,
     } = req.body;
 
     const userId = req.user?._id || user;
+
     if (!userId) {
       return res.status(400).json({
         success: false,
@@ -782,25 +721,60 @@ exports.addPart = async (req, res) => {
       });
     }
 
+    if (
+      !name ||
+      !manufacturer ||
+      !model ||
+      !year ||
+      !category ||
+      !count ||
+      !price
+    ) {
+      return res.status(400).json({
+        success: false,
+        message: 'يرجى تعبئة جميع الحقول المطلوبة',
+      });
+    }
+
     let imageUrl = null;
+
     if (req.file) {
-      console.log(' File received:', req.file.path);
+      console.log('File received:', req.file.path);
       const result = await cloudinary.uploader.upload(req.file.path);
       imageUrl = result.secure_url;
     }
-    const newPart = new part({
-      name,
-      manufacturer: manufacturer ? manufacturer.toLowerCase() : null,
-      serialNumber,
-      model: model ? model.toLowerCase() : null,
-      year,
-      count,
-      category,
-      status,
+
+    let parsedCompatibleCars = [];
+
+    if (compatibleCars) {
+      if (typeof compatibleCars === 'string') {
+        try {
+          parsedCompatibleCars = JSON.parse(compatibleCars);
+        } catch (e) {
+          return res.status(400).json({
+            success: false,
+            message: 'صيغة compatibleCars غير صحيحة',
+          });
+        }
+      } else if (Array.isArray(compatibleCars)) {
+        parsedCompatibleCars = compatibleCars;
+      }
+    }
+
+    const newPart = new Part({
+      name: name.trim(),
+      manufacturer: manufacturer.trim(),
+      serialNumber: serialNumber ? serialNumber.trim().toUpperCase() : undefined,
+      model: model.trim(),
+      year: parseInt(year, 10),
+      count: parseInt(count, 10),
+      category: category.trim(),
+      status: status ? status.trim() : 'جديد',
       user: userId,
       imageUrl,
-      price,
-      description,
+      price: parseFloat(price),
+      description: description ? description.trim() : undefined,
+      compatibleCars: parsedCompatibleCars,
     });
 
     await newPart.save();
@@ -812,7 +786,19 @@ exports.addPart = async (req, res) => {
     });
   } catch (error) {
     console.error('❌ خطأ أثناء إضافة المنتج:', error);
-    res.status(500).json({ error: '❌ فشل في إضافة المنتج' });
+
+    if (error.code === 11000) {
+      return res.status(400).json({
+        success: false,
+        message: 'يوجد سجل مكرر في البيانات',
+      });
+    }
+
+    res.status(500).json({
+      success: false,
+      message: '❌ فشل في إضافة المنتج',
+      error: error.message,
+    });
   }
 };
 

@@ -28,19 +28,36 @@ exports.viewcar = async (req, res) => {
 
 exports.addCarToUser = async (req, res) => {
   try {
-    const userId = req.params.userId;
+    const { userId } = req.params;
     const { manufacturer, model, year, serialNumber } = req.body;
+
+    if (!userId) {
+      return res.status(400).json({
+        success: false,
+        message: 'معرف المستخدم مطلوب',
+      });
+    }
+
+    if (!manufacturer || !model || !year || !serialNumber) {
+      return res.status(400).json({
+        success: false,
+        message: 'يجب إدخال الشركة والموديل والسنة ورقم الشاص',
+      });
+    }
 
     const user = await User.findById(userId);
     if (!user) {
-      return res.status(404).json({ message: 'المستخدم غير موجود' });
+      return res.status(404).json({
+        success: false,
+        message: 'المستخدم غير موجود',
+      });
     }
 
     const car = await Car.create({
-      manufacturer: manufacturer ? manufacturer.toLowerCase() : null,
-      model: model ? model.toLowerCase() : null,
-      year: year ? parseInt(year) : null,
-      serialNumber: serialNumber ? serialNumber.toLowerCase() : null,
+      manufacturer: manufacturer.trim(),
+      model: model.trim(),
+      year: parseInt(year, 10),
+      serialNumber: serialNumber.trim().toUpperCase(),
       user: userId,
     });
 
@@ -48,10 +65,24 @@ exports.addCarToUser = async (req, res) => {
     await user.save();
 
     res.status(201).json({
+      success: true,
       message: 'تمت إضافة السيارة بنجاح',
       car,
     });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    console.error('❌ خطأ أثناء إضافة السيارة:', err);
+
+    if (err.code === 11000) {
+      return res.status(400).json({
+        success: false,
+        message: 'رقم الشاص مستخدم مسبقًا',
+      });
+    }
+
+    res.status(500).json({
+      success: false,
+      message: 'فشل في إضافة السيارة',
+      error: err.message,
+    });
   }
 };
