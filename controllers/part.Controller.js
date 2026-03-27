@@ -1,5 +1,5 @@
 const SpicificOrder = require('../models/spicificPartOrder.model');
-const part = require('../models/part.Model');
+const Part = require('../models/part.Model');
 const User = require('../models/user.model');
 const Order = require('../models/order.model');
 const cloudinary = require('../utils/cloudinary');
@@ -39,7 +39,7 @@ exports.getRecommendations = async (req, res) => {
       });
     }
 
-    const parts = await part
+    const parts = await   Part 
       .find({
         _id: { $in: recommendations },
       })
@@ -63,7 +63,7 @@ exports.getRecommendations = async (req, res) => {
 exports.getPartsbyId = async (req, res) => {
   try {
     const { partId } = req.body;
-    const parts = await part
+    const parts = await Part
       .find({ _id: partId })
       .select('_id name manufacturer year')
       .lean();
@@ -83,7 +83,7 @@ exports.getPartsbyId = async (req, res) => {
 };
 exports.getAllParts = async (req, res) => {
   try {
-    const parts = await part.find().select('_id name manufacturer year').lean();
+    const parts = await Part.find().select('_id name manufacturer year').lean();
 
     const formattedParts = parts.map((p) => ({
       item_id: p._id,
@@ -129,7 +129,7 @@ exports.addPartsFromExcel = async (req, res) => {
     const insertedParts = [];
 
     for (const row of rows) {
-      const newPart = new part({
+      const newPart = new Part({
         name: row.name,
         manufacturer: row.manufacturer ? row.manufacturer.toLowerCase() : null,
         model: row.model ? row.model.toLowerCase() : null,
@@ -176,7 +176,7 @@ exports.getPartRatings = async (req, res) => {
         .json({ success: false, message: 'معرّف غير صالح' });
     }
 
-    const partDoc = await part
+    const partDoc = await Part
       .findById(partId, { ratings: 1, avgRating: 1, ratingsCount: 1 })
       .populate({
         path: 'ratings.user',
@@ -290,7 +290,7 @@ exports.ratePart = async (req, res) => {
       });
     }
 
-    const partDoc = await part.findById(partId);
+    const partDoc = await Part.findById(partId);
     if (!partDoc) {
       return res
         .status(404)
@@ -311,7 +311,7 @@ exports.ratePart = async (req, res) => {
     const avgRating = Number((sum / ratings.length).toFixed(2));
     const ratingsCount = ratings.length;
 
-    await part.updateOne(
+    await Part.updateOne(
       { _id: partId },
       {
         $push: { ratings: { user: userId, rating } },
@@ -334,7 +334,7 @@ exports.deletePart = async (req, res) => {
   try {
     const { id } = req.params;
 
-    const deleted = await part.findByIdAndDelete(id);
+    const deleted = await Part.findByIdAndDelete(id);
     if (!deleted) {
       return res.status(404).json({ message: '❌ القطعة غير موجودة' });
     }
@@ -351,7 +351,7 @@ exports.updatePart = async (req, res) => {
     const { id } = req.params;
     const updates = req.body;
 
-    const updated = await part.findByIdAndUpdate(id, updates, { new: true });
+    const updated = await Part.findByIdAndUpdate(id, updates, { new: true });
     if (!updated) {
       return res.status(404).json({ message: '❌ القطعة غير موجودة' });
     }
@@ -370,7 +370,7 @@ exports.deletePart = async (req, res) => {
     if (!mongoose.Types.ObjectId.isValid(partId) || !partId) {
       return res.status(400).json({ error: '❌ معرف القطعة غير صالح' });
     }
-    const deletedPart = await part.findByIdAndDelete(partId);
+    const deletedPart = await Part.findByIdAndDelete(partId);
 
     if (!deletedPart) {
       return res.status(404).json({ error: '❌ لم يتم العثور على القطعة' });
@@ -397,6 +397,7 @@ function normalizeText(text = '') {
     .replace(/\s+/g, '')
     .replace(/[-_]/g, '');
 }
+
 
 exports.getCompatibleParts = async (req, res) => {
   try {
@@ -669,7 +670,7 @@ exports.viewPrivateParts = async (req, res) => {
 exports.viewAllParts = async (req, res) => {
   try {
     let parts;
-    parts = await part.find({ count: { $gt: 0 } });
+    parts = await Part.find({ count: { $gt: 0 } });
 
     res.status(200).json({
       message: '✅ تم جلب القطع بنجاح',
@@ -684,7 +685,7 @@ exports.viewsellerParts = async (req, res) => {
   try {
     const { userId } = req.params;
 
-    const parts = await part.find({ user: userId }).sort({ createdAt: -1 });
+    const parts = await Part.find({ user: userId }).sort({ createdAt: -1 });
 
     res.status(200).json({
       parts,
@@ -761,7 +762,7 @@ exports.addPart = async (req, res) => {
       }
     }
 
-    const newPart = new part({
+    const newPart = new Part({
       name: name.trim(),
       manufacturer: manufacturer.trim(),
       serialNumber: serialNumber ? serialNumber.trim().toUpperCase() : undefined,
