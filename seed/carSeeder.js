@@ -42,6 +42,11 @@ async function seedData() {
       code: 'mitsubishi',
       models: ['لانسر', ' اوت لاندر', '', ''],
     },
+    {
+      name: 'اودي',
+      code: 'Audi',
+      models: ['A4', 'A6', 'Q5', 'Q7'],
+    },
   ]);
   console.log('✅ Seeding done');
 }

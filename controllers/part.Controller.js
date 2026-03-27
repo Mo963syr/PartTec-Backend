@@ -420,7 +420,7 @@ exports.getCompatibleParts = async (req, res) => {
         })),
       })
       .select(
-        'name manufacturer model year category status price imageUrl count'
+        'name manufacturer serialNumber model year category status price imageUrl count'
       )
       .sort({ price: 1 });
 
@@ -431,6 +431,7 @@ exports.getCompatibleParts = async (req, res) => {
         id: part._id,
         name: part.name,
         manufacturer: part.manufacturer,
+        serialNumber: part.serialNumber,
         model: part.model,
         year: part.year,
         category: part.category,
