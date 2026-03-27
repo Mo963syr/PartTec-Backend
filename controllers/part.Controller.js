@@ -387,6 +387,73 @@ exports.deletePart = async (req, res) => {
   }
 };
 
+function normalizeText(text = '') {
+  return text
+    .toString()
+    .trim()
+    .toLowerCase()
+    .replace(/[أإآ]/g, 'ا')
+    .replace(/ى/g, 'ي')
+    .replace(/ة/g, 'ه')
+    .replace(/\s+/g, '')
+    .replace(/[-_]/g, '');
+}
+
+const manufacturerAliases = {
+  audi: ['audi', 'أودي', 'اودي'],
+  bmw: ['bmw', 'بي ام دبليو', 'بى ام دبليو', 'بيم', 'بي ام'],
+  mercedes: ['mercedes', 'mercedes-benz', 'مرسيدس', 'مرسيدس بنز'],
+  toyota: ['toyota', 'تويوتا'],
+  hyundai: ['hyundai', 'هيونداي', 'هونداي'],
+  kia: ['kia', 'كيا'],
+  nissan: ['nissan', 'نيسان'],
+  honda: ['honda', 'هوندا'],
+  ford: ['ford', 'فورد'],
+  chevrolet: ['chevrolet', 'chevy', 'شيفروليه', 'شفر', 'شيفر'],
+  volkswagen: ['volkswagen', 'vw', 'فولكس فاجن', 'فولكس', 'فاجن'],
+  renault: ['renault', 'رينو'],
+  peugeot: ['peugeot', 'بيجو'],
+  fiat: ['fiat', 'فيات'],
+  mazda: ['mazda', 'مازدا'],
+  mitsubishi: ['mitsubishi', 'ميتسوبيشي'],
+};
+
+const modelAliases = {
+  elantra: ['elantra', 'النترا', 'الينترا'],
+  sonata: ['sonata', 'سوناتا'],
+  accent: ['accent', 'اكسنت', 'أكسنت'],
+  cerato: ['cerato', 'سيراتو'],
+  optima: ['optima', 'اوبتيما', 'أوبتيما'],
+  sportage: ['sportage', 'سبورتاج'],
+  tucson: ['tucson', 'توسان'],
+  corolla: ['corolla', 'كورولا'],
+  camry: ['camry', 'كامري'],
+  yaris: ['yaris', 'يارس'],
+  civic: ['civic', 'سيفيك'],
+  accord: ['accord', 'اكورد', 'أكورد'],
+  sunny: ['sunny', 'صني'],
+  patrol: ['patrol', 'باترول'],
+  q5: ['q5', 'كيو5', 'كيو 5'],
+  a4: ['a4', 'اي4', 'a 4', 'اي 4'],
+};
+
+function getAliasGroup(value, aliasesMap) {
+  const normalizedValue = normalizeText(value);
+
+  for (const key in aliasesMap) {
+    const normalizedAliases = aliasesMap[key].map(normalizeText);
+    if (normalizedAliases.includes(normalizedValue)) {
+      return aliasesMap[key];
+    }
+  }
+
+  return [value];
+}
+
+function buildInsensitiveRegexList(values = []) {
+  return values.map((v) => new RegExp(`^${v.trim().replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`, 'i'));
+}
+
 exports.getCompatibleParts = async (req, res) => {
   try {
     const { userid } = req.params;
@@ -403,21 +470,28 @@ exports.getCompatibleParts = async (req, res) => {
       .populate('cars', 'manufacturer model year');
 
     if (!user || !user.cars || user.cars.length === 0) {
-      const part = await part.find();
+      const parts = await part.find({ count: { $gt: 0 } });
       return res.status(200).json({
         success: true,
-        parts: part,
-        message: 'تم ارجاع كل السيارات',
+        compatibleParts: parts,
+        message: 'تم إرجاع كل القطع',
       });
     }
 
+    const orConditions = user.cars.map((car) => {
+      const manufacturerList = getAliasGroup(car.manufacturer, manufacturerAliases);
+      const modelList = getAliasGroup(car.model, modelAliases);
+
+      return {
+        manufacturer: { $in: buildInsensitiveRegexList(manufacturerList) },
+        model: { $in: buildInsensitiveRegexList(modelList) },
+      };
+    });
+
     const compatibleParts = await part
       .find({
-        count: { $gt: 0 }, //
-        $or: user.cars.map((car) => ({
-          manufacturer: car.manufacturer,
-          model: car.model,
-        })),
+        count: { $gt: 0 },
+        $or: orConditions,
       })
       .select(
         'name manufacturer serialNumber model year category status price imageUrl count'
@@ -427,18 +501,18 @@ exports.getCompatibleParts = async (req, res) => {
     res.status(200).json({
       success: true,
       userCars: user.cars,
-      compatibleParts: compatibleParts.map((part) => ({
-        id: part._id,
-        name: part.name,
-        manufacturer: part.manufacturer,
-        serialNumber: part.serialNumber,
-        model: part.model,
-        year: part.year,
-        category: part.category,
-        status: part.status,
-        count: part.count,
-        price: part.price,
-        imageUrl: part.imageUrl || '/default-part-image.jpg',
+      compatibleParts: compatibleParts.map((item) => ({
+        id: item._id,
+        name: item.name,
+        manufacturer: item.manufacturer,
+        serialNumber: item.serialNumber,
+        model: item.model,
+        year: item.year,
+        category: item.category,
+        status: item.status,
+        count: item.count,
+        price: item.price,
+        imageUrl: item.imageUrl || '/default-part-image.jpg',
       })),
       meta: {
         totalParts: compatibleParts.length,
