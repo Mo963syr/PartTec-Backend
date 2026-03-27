@@ -761,7 +761,7 @@ exports.addPart = async (req, res) => {
       }
     }
 
-    const newPart = new Part({
+    const newPart = new part({
       name: name.trim(),
       manufacturer: manufacturer.trim(),
       serialNumber: serialNumber ? serialNumber.trim().toUpperCase() : undefined,
