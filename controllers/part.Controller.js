@@ -27,7 +27,7 @@ exports.getRecommendations = async (req, res) => {
       'https://reccomendation-system-06l7.onrender.com/recommend',
       { user_id: userId, top_n: 10 },
 
-      { headers: { 'Content-Type': 'application/json' } }
+      { headers: { 'Content-Type': 'application/json' } },
     );
 
     const recommendations = response.data.recommendations || [];
@@ -167,7 +167,7 @@ exports.getPartRatings = async (req, res) => {
     const page = Math.max(parseInt(req.query.page || '1', 10), 1);
     const limit = Math.min(
       Math.max(parseInt(req.query.limit || '10', 10), 1),
-      100
+      100,
     );
     const skip = (page - 1) * limit;
 
@@ -197,8 +197,8 @@ exports.getPartRatings = async (req, res) => {
     const ratings = Array.isArray(raw)
       ? raw
       : raw && typeof raw === 'object'
-      ? Object.values(raw)
-      : [];
+        ? Object.values(raw)
+        : [];
 
     // لو ما في تقييمات، رجّع صفر بدون أخطاء
     if (!ratings.length) {
@@ -299,7 +299,7 @@ exports.ratePart = async (req, res) => {
     }
 
     const already = (partDoc.ratings || []).some(
-      (r) => r.user.toString() === userId
+      (r) => r.user.toString() === userId,
     );
     if (already) {
       return res
@@ -317,7 +317,7 @@ exports.ratePart = async (req, res) => {
       {
         $push: { ratings: { user: userId, rating } },
         $set: { avgRating, ratingsCount },
-      }
+      },
     );
 
     return res.status(200).json({
@@ -432,6 +432,7 @@ const modelAliases = {
   civic: ['civic', 'سيفيك'],
   accord: ['accord', 'اكورد', 'أكورد'],
   sunny: ['sunny', 'صني'],
+  altima: ['altima', 'التيما'],
   patrol: ['patrol', 'باترول'],
   q5: ['q5', 'كيو5', 'كيو 5'],
   a4: ['a4', 'اي4', 'a 4', 'اي 4'],
@@ -451,7 +452,10 @@ function getAliasGroup(value, aliasesMap) {
 }
 
 function buildInsensitiveRegexList(values = []) {
-  return values.map((v) => new RegExp(`^${v.trim().replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`, 'i'));
+  return values.map(
+    (v) =>
+      new RegExp(`^${v.trim().replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`, 'i'),
+  );
 }
 
 exports.getCompatibleParts = async (req, res) => {
@@ -479,7 +483,10 @@ exports.getCompatibleParts = async (req, res) => {
     }
 
     const orConditions = user.cars.map((car) => {
-      const manufacturerList = getAliasGroup(car.manufacturer, manufacturerAliases);
+      const manufacturerList = getAliasGroup(
+        car.manufacturer,
+        manufacturerAliases,
+      );
       const modelList = getAliasGroup(car.model, modelAliases);
 
       return {
@@ -494,7 +501,7 @@ exports.getCompatibleParts = async (req, res) => {
         $or: orConditions,
       })
       .select(
-        'name manufacturer serialNumber model year category status price imageUrl count'
+        'name manufacturer serialNumber model year category status price imageUrl count',
       )
       .sort({ price: 1 });
 
@@ -530,7 +537,7 @@ exports.getCompatibleParts = async (req, res) => {
 exports.getallOrdersForSeller = async (req, res) => {
   try {
     const { userid } = req.params;
-    const { manufacturer, status }=req.query
+    const { manufacturer, status } = req.query;
     // 1️⃣ التحقق من صحة ObjectId
     if (!mongoose.Types.ObjectId.isValid(userid)) {
       return res.status(400).json({
@@ -587,7 +594,7 @@ exports.getallOrdersForSeller = async (req, res) => {
     // 4️⃣ تنفيذ الاستعلام
     const orders = await SpicificOrder.find(filter)
       .select(
-        'name serialNumber manufacturer model year status price imageUrls notes user count'
+        'name serialNumber manufacturer model year status price imageUrls notes user count',
       )
       .sort({ createdAt: -1 })
       .lean();
@@ -621,16 +628,10 @@ exports.getallOrdersForSeller = async (req, res) => {
     return res.status(500).json({
       success: false,
       message: 'حدث خطأ في الخادم',
-      error:
-        process.env.NODE_ENV === 'development'
-          ? error.message
-          : undefined,
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined,
     });
   }
 };
-
-
-
 
 // تجلب الطلبات اليدوية لللقطع حسب الصلاحية اذا كان مقدم الطلب المستخدم او بائع
 exports.CompatibleSpicificOrders = async (req, res) => {
@@ -658,7 +659,7 @@ exports.CompatibleSpicificOrders = async (req, res) => {
 
     const raw = await SpicificOrder.find(manufacturerFilter)
       .select(
-        'name serialNumber manufacturer model year status price imageUrls notes user'
+        'name serialNumber manufacturer model year status price imageUrls notes user',
       )
       .populate({
         path: 'user',
