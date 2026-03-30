@@ -16,7 +16,7 @@ const User = require('../models/user.model');
 //   }
 // };
 
-exporets.editCar = async (req, res) => {
+exports.editCar = async (req, res) => {
   const { carId } = req.params;
   const { manufacturer, model, year,serialNumber  } = req.body;
 
