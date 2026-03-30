@@ -2,18 +2,51 @@
 
 const Car = require('../models/car.Model');
 const User = require('../models/user.model');
-exports.addCar = async (req, res) => {
-  const { manufacturer, model, year, fuelType, user } = req.body;
+
+
+// exports.addCar = async (req, res) => {
+//   const { manufacturer, model, year, fuelType, user } = req.body;
+
+//   try {
+//     const newCar = new Car({ manufacturer, model, year, serialNumber, user });
+//     await newCar.save();
+//     res.status(201).json({ message: '🚗 تم إضافة السيارة بنجاح', car: newCar });
+//   } catch (error) {
+//     res.status(400).json({ error: '❌ حدث خطأ أثناء إضافة السيارة' });
+//   }
+// };
+
+exporets.editCar = async (req, res) => {
+  const { carId } = req.params;
+  const { manufacturer, model, year,serialNumber  } = req.body;
 
   try {
-    const newCar = new Car({ manufacturer, model, year, serialNumber, user });
-    await newCar.save();
-    res.status(201).json({ message: '🚗 تم إضافة السيارة بنجاح', car: newCar });
+    const updatedCar = await Car.findByIdAndUpdate(
+      carId,
+      { manufacturer, model, year, serialNumber },
+      { new: true }
+    );
+    if (!updatedCar) {
+      return res.status(404).json({ error: '❌ السيارة غير موجودة' });
+    }
+    res.status(200).json({ message: '🚗 تم تحديث السيارة بنجاح', car: updatedCar });
   } catch (error) {
-    res.status(400).json({ error: '❌ حدث خطأ أثناء إضافة السيارة' });
+    res.status(400).json({ error: '❌ حدث خطأ أثناء تحديث السيارة' });
   }
-};
+};  
+exports.deleteCar = async (req, res) => {
+  const { carId } = req.params;
 
+  try {
+    const deletedCar = await Car.findByIdAndDelete(carId);
+    if (!deletedCar) {
+      return res.status(404).json({ error: '❌ السيارة غير موجودة' });
+    }
+    res.status(200).json({ message: '🚗 تم حذف السيارة بنجاح' });
+  } catch (error) {
+    res.status(400).json({ error: '❌ حدث خطأ أثناء حذف السيارة' });
+  }
+}
 exports.viewcar = async (req, res) => {
   const { userId } = req.params;
 

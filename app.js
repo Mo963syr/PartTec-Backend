@@ -90,42 +90,32 @@ app.get('/health', (req, res) => {
   res.json({ status: 'OK', timestamp: new Date().toISOString() });
 });
 
-/* =========================
-   ✅ طباعة كل الـ Endpoints
-   ========================= */
-// ✅ استبدل دوال cleanPath / routePath بحيث تلغي الرموز مثل: /?(?=/|$)/i
 
 function listEndpoints(app) {
   const routes = [];
 
   const normalizeSlashes = (s) => s.replace(/\/+/g, '/');
 
-  // يحوّل Regex الخاص بالـ Router ل path نظيف (مثل: /parttec, /admin ...)
   function cleanMountPath(layer) {
     if (!layer?.regexp) return '';
 
     let s = layer.regexp.toString();
 
-    // 1) شيل غلاف الـ regex
-    // مثال: /^\/parttec\/?(?=\/|$)/i  =>  /parttec
+
     s = s
       .replace(/^\/\^\\\//, '/')
       .replace(/\\\/\?\(\?=\\\/\|\$\)\$\/i$/, '') // شيل \/?(?=\/|$)$/i
       .replace(/\$\/i$/, '') // احتياط
       .replace(/\/i$/, '');
 
-    // 2) رجّع السلاشات طبيعية
     s = s.replace(/\\\//g, '/');
 
-    // 3) شيل أي بقايا من: /?(?=/|$)
     s = s.replace(/\/\?\(\?=\/\|\$\)/g, '');
     s = s.replace(/\(\?=\/\|\$\)/g, '');
     s = s.replace(/\/\?/g, ''); // لو بقيت
 
-    // 4) شيل ^ و $ لو بقوا
     s = s.replace(/^\^/, '').replace(/\$$/, '');
 
-    // 5) تأكد أنه يبدأ بسلاش
     if (s && !s.startsWith('/')) s = '/' + s;
 
     return normalizeSlashes(s);
@@ -133,7 +123,7 @@ function listEndpoints(app) {
 
   function walk(stack, basePath = '') {
     stack.forEach((layer) => {
-      // Route مباشر
+  
       if (layer.route) {
         const p = layer.route.path;
         const fullPath = normalizeSlashes(
@@ -161,7 +151,7 @@ function listEndpoints(app) {
 
   walk(app._router?.stack || [], '');
 
-  // ✅ تجاهل تكرارات وتنسيق نهائي
+
   const grouped = new Map();
   routes
     .map((r) => ({
@@ -198,7 +188,7 @@ if (process.env.NODE_ENV !== 'test') {
       console.log('✅ تم الاتصال بقاعدة بيانات PartTec في MongoDB Atlas');
       app.listen(PORT, () => {
         console.log(`🚀 الخادم يعمل على المنفذ ${PORT}`);
-        // ✅ اطبع بعد ما يشتغل السيرفر
+   
         listEndpoints(app);
       });
       await seedData();
