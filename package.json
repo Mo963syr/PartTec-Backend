@@ -12,6 +12,7 @@
   "type": "commonjs",
   "description": "",
   "dependencies": {
+    "@google/genai": "^1.49.0",
     "axios": "^1.11.0",
     "bcrypt": "^6.0.0",
     "cloudinary": "^2.7.0",
@@ -20,7 +21,7 @@
     "express": "^4.21.2",
     "moment-timezone": "^0.6.0",
     "mongoose": "^8.16.3",
-    "multer": "^2.0.2",
+    "multer": "^2.1.1",
     "node-fetch": "^2.7.0",
     "nodemon": "^3.1.10",
     "xlsx": "^0.18.5"

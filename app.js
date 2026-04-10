@@ -20,6 +20,7 @@ const admin = require('./routes/adminRoutes');
 const paymentRoutes = require('./routes/payment.Routes');
 const pricingRoutes = require('./routes/pricingRoutes');
 const carBrands = require('./routes/carBrands.Routes');
+const vinRoutes = require('./routes/vin.routes');
 const seedData = require('./seed/carSeeder');
 
 const cors = require('cors');
@@ -49,7 +50,7 @@ api.use('/favorites', favoritesRoutes);
 api.use('/order', req);
 api.use('/comment', Comment);
 api.use('/payment', paymentRoutes);
-
+api.use('/vin', vinRoutes);
 // ✅ prefix مرة واحدة
 app.use('/parttec', api);
 
@@ -90,7 +91,6 @@ app.get('/health', (req, res) => {
   res.json({ status: 'OK', timestamp: new Date().toISOString() });
 });
 
-
 function listEndpoints(app) {
   const routes = [];
 
@@ -100,7 +100,6 @@ function listEndpoints(app) {
     if (!layer?.regexp) return '';
 
     let s = layer.regexp.toString();
-
 
     s = s
       .replace(/^\/\^\\\//, '/')
@@ -123,7 +122,6 @@ function listEndpoints(app) {
 
   function walk(stack, basePath = '') {
     stack.forEach((layer) => {
-  
       if (layer.route) {
         const p = layer.route.path;
         const fullPath = normalizeSlashes(
@@ -150,7 +148,6 @@ function listEndpoints(app) {
   }
 
   walk(app._router?.stack || [], '');
-
 
   const grouped = new Map();
   routes
@@ -188,7 +185,7 @@ if (process.env.NODE_ENV !== 'test') {
       console.log('✅ تم الاتصال بقاعدة بيانات PartTec في MongoDB Atlas');
       app.listen(PORT, () => {
         console.log(`🚀 الخادم يعمل على المنفذ ${PORT}`);
-   
+
         listEndpoints(app);
       });
       await seedData();
