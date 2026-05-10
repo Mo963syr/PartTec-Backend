@@ -3,7 +3,6 @@
 
 const express = require('express');
 const mongoose = require('mongoose');
-const bodyParser = require('body-parser');
 require('dotenv').config();
 
 const carRoutes = require('./routes/car.Routes');
@@ -29,8 +28,23 @@ const app = express();
 
 // Middlewares
 app.use(express.json());
-app.use(bodyParser.urlencoded({ extended: true }));
-app.use(bodyParser.json());
+app.use(express.urlencoded({ extended: true }));
+
+app.use(
+  cors({
+    origin: [
+      'http://localhost:59567',
+      'http://localhost:3000',
+      'http://127.0.0.1:59567',
+      'http://187.124.3.3',
+    ],
+    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization'],
+    credentials: true,
+  }),
+);
+
+app.options('*', cors());
 
 // ✅ اجمع كل الراوتات داخل Router واحد
 const api = express.Router();
@@ -53,38 +67,6 @@ api.use('/payment', paymentRoutes);
 api.use('/vin', vinRoutes);
 // ✅ prefix مرة واحدة
 app.use('/parttec', api);
-
-// CORS (كما عندك)
-app.use((req, res, next) => {
-  const origin = req.headers.origin;
-  if (origin) res.setHeader('Access-Control-Allow-Origin', origin);
-  res.setHeader('Vary', 'Origin');
-  res.setHeader(
-    'Access-Control-Allow-Methods',
-    'GET,POST,PUT,PATCH,DELETE,OPTIONS',
-  );
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
-  res.setHeader('Access-Control-Allow-Credentials', 'true');
-
-  if (req.method === 'OPTIONS') return res.status(204).end();
-  next();
-});
-
-app.use(
-  cors({
-    origin: [
-      'http://localhost:59567',
-      'http://localhost:3000',
-      'http://127.0.0.1:59567',
-      'http://187.124.3.3',
-    ],
-    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization'],
-    credentials: true,
-  }),
-);
-
-app.options('*', cors());
 
 // Health
 app.get('/health', (req, res) => {
