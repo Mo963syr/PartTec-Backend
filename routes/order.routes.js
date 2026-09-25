@@ -8,11 +8,7 @@ const router = express.Router();
 const specificOrderImageUpload = multer({
   storage: multer.diskStorage({
     destination: (req, file, cb) => {
-      const directory = path.join(
-        process.cwd(),
-        'uploads',
-        'specific-orders',
-      );
+      const directory = path.join(process.cwd(), 'uploads', 'specific-orders');
       fs.mkdirSync(directory, { recursive: true });
       cb(null, directory);
     },

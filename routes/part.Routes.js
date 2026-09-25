@@ -31,7 +31,10 @@ const partImageUpload = multer({
     },
     filename: (req, file, cb) => {
       const extension = path.extname(file.originalname).toLowerCase();
-      cb(null, `${Date.now()}-${crypto.randomBytes(8).toString('hex')}${extension}`);
+      cb(
+        null,
+        `${Date.now()}-${crypto.randomBytes(8).toString('hex')}${extension}`,
+      );
     },
   }),
 });

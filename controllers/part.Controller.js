@@ -423,12 +423,14 @@ exports.updatePart = async (req, res) => {
       runValidators: true,
     }).populate('warehouse', 'name address');
 
-    if (
-      req.file &&
-      existingPart.imageUrl?.startsWith('/uploads/parts/')
-    ) {
+    if (req.file && existingPart.imageUrl?.startsWith('/uploads/parts/')) {
       const oldFileName = path.basename(existingPart.imageUrl);
-      const oldFilePath = path.join(process.cwd(), 'uploads', 'parts', oldFileName);
+      const oldFilePath = path.join(
+        process.cwd(),
+        'uploads',
+        'parts',
+        oldFileName,
+      );
       if (fs.existsSync(oldFilePath)) {
         fs.unlinkSync(oldFilePath);
       }
