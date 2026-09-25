@@ -1,6 +1,30 @@
 const express = require('express');
-const upload = require('../middleware/upload');
+const multer = require('multer');
+const path = require('path');
+const crypto = require('crypto');
+const fs = require('fs');
 const router = express.Router();
+
+const specificOrderImageUpload = multer({
+  storage: multer.diskStorage({
+    destination: (req, file, cb) => {
+      const directory = path.join(
+        process.cwd(),
+        'uploads',
+        'specific-orders',
+      );
+      fs.mkdirSync(directory, { recursive: true });
+      cb(null, directory);
+    },
+    filename: (req, file, cb) => {
+      const extension = path.extname(file.originalname).toLowerCase();
+      cb(
+        null,
+        `${Date.now()}-${crypto.randomBytes(8).toString('hex')}${extension}`,
+      );
+    },
+  }),
+});
 const {
   addOrder,
   vieworderitem,
@@ -21,7 +45,11 @@ const {
   getOrderSummariesByUser,
 } = require('../controllers/orderSummary.Controller');
 // const { createOffer ,getOffersByOrder } = require('../controllers/recommendationOffer.Controller');
-router.post('/addspicificorder', upload.single('image'), addspicificorder);
+router.post(
+  '/addspicificorder',
+  specificOrderImageUpload.single('image'),
+  addspicificorder,
+);
 router.post('/create', addOrder);
 router.get('/viewuserorder/:userId', vieworderitem);
 router.get('/viewuserspicificorder/:userId', viewspicificorderitem);

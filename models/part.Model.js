@@ -90,7 +90,7 @@ const partSchema = new mongoose.Schema(
       required: false,
       validate: {
         validator: function (v) {
-          return !v || /^(https?:\/\/.+)$/.test(v);
+          return !v || /^(https?:\/\/.+|\/uploads\/parts\/.+)$/.test(v);
         },
         message: (props) => `${props.value} ليس رابط صحيح للصورة!`,
       },
@@ -100,6 +100,13 @@ const partSchema = new mongoose.Schema(
       type: mongoose.Schema.Types.ObjectId,
       ref: 'User',
       required: [true, 'يجب ربط القطعة بمعرف المستخدم'],
+    },
+
+    warehouse: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Warehouse',
+      required: [true, 'يجب اختيار المستودع'],
+      index: true,
     },
 
     compatibleCars: [
@@ -142,7 +149,7 @@ const partSchema = new mongoose.Schema(
     timestamps: true,
     toJSON: { virtuals: true },
     toObject: { virtuals: true },
-  }
+  },
 );
 
 partSchema.index({ manufacturer: 1 });

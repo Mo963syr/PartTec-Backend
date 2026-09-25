@@ -1,15 +1,53 @@
 const SpicificOrder = require('../models/spicificPartOrder.model');
 const Part = require('../models/part.Model');
+const Warehouse = require('../models/warehouse.model');
 const User = require('../models/user.model');
 const Order = require('../models/order.model');
 const cloudinary = require('../utils/cloudinary');
 const mongoose = require('mongoose');
 const XLSX = require('xlsx');
+const ExcelJS = require('exceljs');
 const fs = require('fs');
 const path = require('path');
 
 const express = require('express');
 const axios = require('axios');
+
+async function findWarehouse(value) {
+  if (!value || typeof value !== 'string') return null;
+
+  const warehouseValue = value.trim();
+  if (!warehouseValue) return null;
+
+  if (mongoose.Types.ObjectId.isValid(warehouseValue)) {
+    return Warehouse.findById(warehouseValue);
+  }
+
+  return Warehouse.findOne({ name: warehouseValue });
+}
+
+async function extractExcelImages(filePath) {
+  const workbook = new ExcelJS.Workbook();
+  await workbook.xlsx.readFile(filePath);
+
+  const worksheet = workbook.worksheets[0];
+  const imagesByRow = new Map();
+  const directory = path.join(process.cwd(), 'uploads', 'parts');
+  fs.mkdirSync(directory, { recursive: true });
+
+  for (const imagePosition of worksheet.getImages()) {
+    const image = workbook.getImage(imagePosition.imageId);
+    const rowNumber = Math.floor(imagePosition.range.tl.row) + 1;
+    const extension = image.extension ? `.${image.extension}` : '.png';
+    const fileName = `${Date.now()}-${Math.random().toString(16).slice(2)}${extension}`;
+    const filePathOnServer = path.join(directory, fileName);
+
+    fs.writeFileSync(filePathOnServer, image.buffer);
+    imagesByRow.set(rowNumber, `/uploads/parts/${fileName}`);
+  }
+
+  return { workbook, worksheet, imagesByRow };
+}
 
 exports.getRecommendations = async (req, res) => {
   try {
@@ -39,11 +77,9 @@ exports.getRecommendations = async (req, res) => {
       });
     }
 
-    const parts = await   Part 
-      .find({
-        _id: { $in: recommendations },
-      })
-      .select('name manufacturer model year price imageUrl');
+    const parts = await Part.find({
+      _id: { $in: recommendations },
+    }).select('name manufacturer model year price imageUrl');
 
     return res.status(200).json({
       success: true,
@@ -63,8 +99,7 @@ exports.getRecommendations = async (req, res) => {
 exports.getPartsbyId = async (req, res) => {
   try {
     const { partId } = req.body;
-    const parts = await Part
-      .find({ _id: partId })
+    const parts = await Part.find({ _id: partId })
       .select('_id name manufacturer year')
       .lean();
 
@@ -112,23 +147,30 @@ exports.addPartsFromExcel = async (req, res) => {
       return res.status(400).json({ message: '⚠️ لم يتم رفع أي ملف' });
     }
 
-    const { user } = req.body;
+    const { user, warehouse } = req.body;
     if (!user) {
       return res
         .status(400)
         .json({ message: '⚠️ يجب إرسال معرف المستخدم مع الطلب' });
     }
 
-    const fixedImageUrl =
-      'https://res.cloudinary.com/dzjrgcxwt/image/upload/photo_2025-09-02_07-58-51_e8g6im.jpg';
+    const selectedWarehouse = await findWarehouse(warehouse);
+    if (!selectedWarehouse) {
+      return res.status(404).json({
+        success: false,
+        message: 'المستودع المحدد غير موجود، أرسل اسمه أو معرفه الصحيح',
+      });
+    }
 
-    const workbook = XLSX.readFile(req.file.path);
-    const sheet = workbook.Sheets[workbook.SheetNames[0]];
+    const { imagesByRow } = await extractExcelImages(req.file.path);
+    const xlsxWorkbook = XLSX.readFile(req.file.path);
+    const sheet = xlsxWorkbook.Sheets[xlsxWorkbook.SheetNames[0]];
     const rows = XLSX.utils.sheet_to_json(sheet);
 
     const insertedParts = [];
 
-    for (const row of rows) {
+    for (const [index, row] of rows.entries()) {
+      const excelRowNumber = index + 2;
       const newPart = new Part({
         name: row.name,
         manufacturer: row.manufacturer ? row.manufacturer.toLowerCase() : null,
@@ -137,11 +179,12 @@ exports.addPartsFromExcel = async (req, res) => {
         category: row.category,
         status: row.status,
         user: user,
+        warehouse: selectedWarehouse._id,
         price: row.price,
         count: row.count,
         serialNumber: row.serialNumber,
         description: row.description,
-        imageUrl: fixedImageUrl,
+        imageUrl: imagesByRow.get(excelRowNumber),
       });
 
       await newPart.save();
@@ -176,8 +219,11 @@ exports.getPartRatings = async (req, res) => {
         .json({ success: false, message: 'معرّف غير صالح' });
     }
 
-    const partDoc = await Part
-      .findById(partId, { ratings: 1, avgRating: 1, ratingsCount: 1 })
+    const partDoc = await Part.findById(partId, {
+      ratings: 1,
+      avgRating: 1,
+      ratingsCount: 1,
+    })
       .populate({
         path: 'ratings.user',
         select: 'name email role',
@@ -349,14 +395,49 @@ exports.deletePart = async (req, res) => {
 exports.updatePart = async (req, res) => {
   try {
     const { id } = req.params;
-    const updates = req.body;
+    const updates = { ...req.body };
+    const existingPart = await Part.findById(id).select('imageUrl');
 
-    const updated = await Part.findByIdAndUpdate(id, updates, { new: true });
-    if (!updated) {
+    if (!existingPart) {
       return res.status(404).json({ message: '❌ القطعة غير موجودة' });
     }
 
-    res.json({ message: '✅ تم تعديل القطعة', part: updated });
+    if (req.file) {
+      updates.imageUrl = `/uploads/parts/${req.file.filename}`;
+    }
+
+    if (updates.warehouse !== undefined) {
+      const selectedWarehouse = await findWarehouse(updates.warehouse);
+      if (!selectedWarehouse) {
+        return res.status(404).json({
+          success: false,
+          message: 'المستودع المحدد غير موجود، أرسل اسمه أو معرفه الصحيح',
+        });
+      }
+
+      updates.warehouse = selectedWarehouse._id;
+    }
+
+    const updated = await Part.findByIdAndUpdate(id, updates, {
+      new: true,
+      runValidators: true,
+    }).populate('warehouse', 'name address');
+
+    if (
+      req.file &&
+      existingPart.imageUrl?.startsWith('/uploads/parts/')
+    ) {
+      const oldFileName = path.basename(existingPart.imageUrl);
+      const oldFilePath = path.join(process.cwd(), 'uploads', 'parts', oldFileName);
+      if (fs.existsSync(oldFilePath)) {
+        fs.unlinkSync(oldFilePath);
+      }
+    }
+
+    res.json({
+      message: '✅ تم تعديل القطعة',
+      part: updated,
+    });
   } catch (err) {
     console.error('خطأ أثناء التعديل:', err);
     res.status(500).json({ message: '⚠️ خطأ في السيرفر' });
@@ -398,7 +479,6 @@ function normalizeText(text = '') {
     .replace(/[-_]/g, '');
 }
 
-
 const {
   normalizeManufacturer,
   normalizeModel,
@@ -419,7 +499,7 @@ exports.getCompatibleParts = async (req, res) => {
       .select('cars')
       .populate(
         'cars',
-        'manufacturer model year manufacturerNormalized modelNormalized'
+        'manufacturer model year manufacturerNormalized modelNormalized',
       );
 
     if (!user || !user.cars || user.cars.length === 0) {
@@ -435,12 +515,10 @@ exports.getCompatibleParts = async (req, res) => {
     const orConditions = user.cars
       .map((car) => {
         const manufacturerNormalized =
-          car.manufacturerNormalized ||
-          normalizeManufacturer(car.manufacturer);
+          car.manufacturerNormalized || normalizeManufacturer(car.manufacturer);
 
         const modelNormalized =
-          car.modelNormalized ||
-          normalizeModel(car.model);
+          car.modelNormalized || normalizeModel(car.model);
 
         if (!manufacturerNormalized || !modelNormalized) return null;
 
@@ -469,7 +547,7 @@ exports.getCompatibleParts = async (req, res) => {
       $or: orConditions,
     })
       .select(
-        'name manufacturer manufacturerNormalized serialNumber model modelNormalized year category status price imageUrl count'
+        'name manufacturer manufacturerNormalized serialNumber model modelNormalized year category status price imageUrl count',
       )
       .sort({ price: 1 });
 
@@ -743,6 +821,7 @@ exports.addPart = async (req, res) => {
       description,
       user,
       compatibleCars,
+      warehouse,
     } = req.body;
 
     const userId = req.user?._id || user;
@@ -751,6 +830,14 @@ exports.addPart = async (req, res) => {
       return res.status(400).json({
         success: false,
         message: '🚫 يجب تحديد معرف المستخدم',
+      });
+    }
+
+    const selectedWarehouse = await findWarehouse(warehouse);
+    if (!selectedWarehouse) {
+      return res.status(404).json({
+        success: false,
+        message: 'المستودع المحدد غير موجود، أرسل اسمه أو معرفه الصحيح',
       });
     }
 
@@ -773,8 +860,7 @@ exports.addPart = async (req, res) => {
 
     if (req.file) {
       console.log('File received:', req.file.path);
-      const result = await cloudinary.uploader.upload(req.file.path);
-      imageUrl = result.secure_url;
+      imageUrl = `/uploads/parts/${req.file.filename}`;
     }
 
     let parsedCompatibleCars = [];
@@ -797,13 +883,16 @@ exports.addPart = async (req, res) => {
     const newPart = new Part({
       name: name.trim(),
       manufacturer: manufacturer.trim(),
-      serialNumber: serialNumber ? serialNumber.trim().toUpperCase() : undefined,
+      serialNumber: serialNumber
+        ? serialNumber.trim().toUpperCase()
+        : undefined,
       model: model.trim(),
       year: parseInt(year, 10),
       count: parseInt(count, 10),
       category: category.trim(),
       status: status ? status.trim() : 'جديد',
       user: userId,
+      warehouse: selectedWarehouse._id,
       imageUrl,
       price: parseFloat(price),
       description: description ? description.trim() : undefined,
@@ -863,11 +952,9 @@ exports.addspicificorder = async (req, res) => {
       });
     }
 
-    let imageUrl = null;
-    if (req.file) {
-      const result = await cloudinary.uploader.upload(req.file.path);
-      imageUrl = result.secure_url;
-    }
+    const imageUrl = req.file
+      ? `/uploads/specific-orders/${req.file.filename}`
+      : null;
     const newOrder = new SpicificOrder({
       name,
       manufacturer: manufacturer.toLowerCase(),

@@ -61,9 +61,7 @@ const spicificorderschema = new mongoose.Schema(
         type: String,
         validate: {
           validator: function (v) {
-            return /^(https?:\/\/)?([\da-z\.-]+)\.([a-z\.]{2,6})([\/\w \.-]*)*\/?$/.test(
-              v
-            );
+            return /^(https?:\/\/.+|\/uploads\/specific-orders\/.+)$/.test(v);
           },
           message: (props) => `${props.value} ليس رابط صحيح للصورة!`,
         },

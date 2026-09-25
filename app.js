@@ -1,8 +1,7 @@
-// server.js (أو نفس ملف التشغيل)
-// ✅ اطبع كل الـ endpoints بشكل مرتب عند تشغيل السيرفر
 
 const express = require('express');
 const mongoose = require('mongoose');
+const path = require('path');
 require('dotenv').config();
 
 const carRoutes = require('./routes/car.Routes');
@@ -20,6 +19,7 @@ const paymentRoutes = require('./routes/payment.Routes');
 const pricingRoutes = require('./routes/pricingRoutes');
 const carBrands = require('./routes/carBrands.Routes');
 const vinRoutes = require('./routes/vin.routes');
+const warehouseRoutes = require('./routes/warehouse.routes');
 const seedData = require('./seed/carSeeder');
 
 const cors = require('cors');
@@ -29,6 +29,7 @@ const app = express();
 // Middlewares
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 app.use(
   cors({
@@ -65,6 +66,7 @@ api.use('/order', req);
 api.use('/comment', Comment);
 api.use('/payment', paymentRoutes);
 api.use('/vin', vinRoutes);
+api.use('/warehouses', warehouseRoutes);
 // ✅ prefix مرة واحدة
 app.use('/parttec', api);
 
@@ -160,9 +162,14 @@ mongoose.set('strictQuery', true);
 if (process.env.NODE_ENV !== 'test') {
   const PORT = process.env.PORT || 3001;
   const uri = process.env.MONGO_URI;
+  const mongoOptions = {
+    family: 4,
+    serverSelectionTimeoutMS: 30000,
+    socketTimeoutMS: 45000,
+  };
 
   mongoose
-    .connect(uri)
+    .connect(uri, mongoOptions)
     .then(async () => {
       console.log('✅ تم الاتصال بقاعدة بيانات PartTec في MongoDB Atlas');
       app.listen(PORT, () => {
@@ -172,7 +179,12 @@ if (process.env.NODE_ENV !== 'test') {
       });
       await seedData();
     })
-    .catch((err) => console.error('❌ فشل الاتصال:', err));
+    .catch((err) => {
+      console.error('❌ فشل الاتصال بقاعدة البيانات:', err.message);
+      console.error(
+        'إذا كان VPN يعمل، تأكد أن IP الخاص بالـ VPN مسموح في MongoDB Atlas Network Access.',
+      );
+    });
 }
 
 module.exports = app;
