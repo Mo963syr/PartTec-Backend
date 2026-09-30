@@ -403,7 +403,7 @@ exports.updatePart = async (req, res) => {
     }
 
     if (req.file) {
-      updates.imageUrl = `/uploads/parts/${req.file.filename}`;
+      updates.imageUrl = `http://187.124.131.209/uploads/parts/${req.file.filename}`;
     }
 
     if (updates.warehouse !== undefined) {
