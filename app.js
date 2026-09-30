@@ -33,18 +33,24 @@ app.use('/parttec/uploads', express.static(path.join(__dirname, 'uploads')));
 
 app.use(
   cors({
-    origin: [
-      'http://localhost:59567',
-      'http://localhost:3000',
-      'http://127.0.0.1:59567',
-      'http://187.124.3.3',
-    ],
+    // origin: [
+    //   'http://localhost:59567',
+    //   'http://localhost:54284',
+    //   'http://localhost:3000',
+    //   'http://127.0.0.1:59567',
+    //   'http://187.124.3.3',
+    // ],
+    origin: '*', // السماح لجميع الروابط
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization'],
     credentials: true,
   }),
 );
-
+// في NestJS (main.ts)
+// app.enableCors({
+//   origin: true, // يسمح بالاتصال من أي بورت محلي لتطبيق Flutter
+//   credentials: true,
+// });
 app.options('*', cors());
 
 // ✅ اجمع كل الراوتات داخل Router واحد

@@ -24,7 +24,8 @@ exports.deleteSpicificOrder = async (req, res) => {
     // منع الحذف بعد 30 دقيقة من إنشاء الطلب إذا كان مؤكد
     if (
       order.createdAt &&
-      (Date.now() + 3 * 60 * 60 * 1000) - new Date(order.createdAt).getTime() > 30 * 60 * 1000 &&
+      Date.now() + 3 * 60 * 60 * 1000 - new Date(order.createdAt).getTime() >
+        30 * 60 * 1000 &&
       order.status === 'مؤكد'
     ) {
       return res.status(400).json({
@@ -36,7 +37,8 @@ exports.deleteSpicificOrder = async (req, res) => {
     // منع الحذف بعد 20 دقيقة من الموافقة
     if (
       order.status === 'موافق عليها' &&
-      (Date.now() + 3 * 60 * 60 * 1000) - new Date(order.updatedAt).getTime() > 20 * 60 * 1000
+      Date.now() + 3 * 60 * 60 * 1000 - new Date(order.updatedAt).getTime() >
+        20 * 60 * 1000
     ) {
       return res.status(400).json({
         ok: false,
@@ -66,7 +68,6 @@ exports.deleteSpicificOrder = async (req, res) => {
     });
   }
 };
-
 
 const Part = require('../models/part.Model');
 let OrderSummary = null;
@@ -186,15 +187,16 @@ exports.deleteorder = async (req, res) => {
       return res.status(404).json({ ok: false, error: 'Order not found' });
     }
     const minutesFromCreate = (Date.now() - order.createdAt.getTime()) / 60000;
-const minutesFromUpdate = (Date.now() - order.updatedAt.getTime()) / 60000;
+    const minutesFromUpdate = (Date.now() - order.updatedAt.getTime()) / 60000;
 
-console.log("minutes from create:", minutesFromCreate);
-console.log("minutes from update:", minutesFromUpdate);
+    console.log('minutes from create:', minutesFromCreate);
+    console.log('minutes from update:', minutesFromUpdate);
 
     // منع الحذف بعد 30 دقيقة من إنشاء الطلب
     if (
       order.createdAt &&
-     (Date.now() + 3 * 60 * 60 * 1000) - new Date(order.createdAt).getTime() > 30 * 60 * 1000 &&
+      Date.now() + 3 * 60 * 60 * 1000 - new Date(order.createdAt).getTime() >
+        30 * 60 * 1000 &&
       order.status === 'مؤكد'
     ) {
       return res
@@ -205,7 +207,8 @@ console.log("minutes from update:", minutesFromUpdate);
     // منع الحذف بعد 20 دقيقة من الموافقة
     if (
       order.status === 'موافق عليها' &&
-     (Date.now() + 3 * 60 * 60 * 1000) - new Date(order.updatedAt).getTime() > 20 * 60 * 1000
+      Date.now() + 3 * 60 * 60 * 1000 - new Date(order.updatedAt).getTime() >
+        20 * 60 * 1000
     ) {
       return res.status(400).json({
         ok: false,
@@ -227,7 +230,6 @@ console.log("minutes from update:", minutesFromUpdate);
       ok: true,
       message: 'Order deleted successfully',
     });
-
   } catch (err) {
     console.error('deleteorder error:', err);
     return res.status(500).json({ ok: false, error: 'failed_to_delete_order' });
@@ -377,7 +379,7 @@ exports.getUserBrandOrders = async (req, res) => {
 exports.addOrder = async (req, res) => {
   const start = Date.now();
   try {
-    const { userId, coordinates,fee } = req.body;
+    const { userId, coordinates, fee } = req.body;
 
     if (!mongoose.Types.ObjectId.isValid(userId)) {
       return res.status(400).json({
