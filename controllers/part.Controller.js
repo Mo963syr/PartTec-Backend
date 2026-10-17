@@ -403,7 +403,7 @@ exports.updatePart = async (req, res) => {
     }
 
     if (req.file) {
-      updates.imageUrl = `http://187.124.131.209/uploads/parts/${req.file.filename}`;
+      updates.imageUrl = `http://187.124.131.209:3001/uploads/parts/${req.file.filename}`;
     }
 
     if (updates.warehouse !== undefined) {
@@ -862,7 +862,7 @@ exports.addPart = async (req, res) => {
 
     if (req.file) {
       console.log('File received:', req.file.path);
-      imageUrl = `http://187.124.131.209/uploads/parts/${req.file.filename}`;
+      imageUrl = `http://187.124.131.209:3001/uploads/parts/${req.file.filename}`;
     }
 
     let parsedCompatibleCars = [];
