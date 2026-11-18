@@ -26,7 +26,7 @@ const {
 const BASE_URL = 'http://187.124.131.209:3001';
 const UPLOAD_PATH = '/uploads/parts';
 const MAX_IMAGES = 10;
-
+// ينستمسنتي
 // ==========================================
 // 2. الدوال المساعدة (Helper Functions)
 // ==========================================
@@ -213,13 +213,11 @@ exports.addPart = async (req, res) => {
         .status(400)
         .json({ success: false, message: 'يوجد سجل مكرر في البيانات' });
     }
-    res
-      .status(500)
-      .json({
-        success: false,
-        message: '❌ فشل في إضافة المنتج',
-        error: error.message,
-      });
+    res.status(500).json({
+      success: false,
+      message: '❌ فشل في إضافة المنتج',
+      error: error.message,
+    });
   }
 };
 
@@ -343,21 +341,17 @@ exports.updatePart = async (req, res) => {
     if (err.code === 11000)
       return res.status(400).json({ success: false, message: 'يوجد سجل مكرر' });
     if (err.name === 'ValidationError') {
-      return res
-        .status(400)
-        .json({
-          success: false,
-          message: 'بيانات غير صحيحة',
-          errors: Object.values(err.errors).map((e) => e.message),
-        });
-    }
-    res
-      .status(500)
-      .json({
+      return res.status(400).json({
         success: false,
-        message: '⚠️ خطأ في السيرفر',
-        error: err.message,
+        message: 'بيانات غير صحيحة',
+        errors: Object.values(err.errors).map((e) => e.message),
       });
+    }
+    res.status(500).json({
+      success: false,
+      message: '⚠️ خطأ في السيرفر',
+      error: err.message,
+    });
   }
 };
 
@@ -381,13 +375,11 @@ exports.getRecommendations = async (req, res) => {
 
     const recommendations = response.data.recommendations || [];
     if (!Array.isArray(recommendations) || recommendations.length === 0) {
-      return res
-        .status(200)
-        .json({
-          success: true,
-          message: 'لا توجد توصيات حالياً',
-          recommendations: [],
-        });
+      return res.status(200).json({
+        success: true,
+        message: 'لا توجد توصيات حالياً',
+        recommendations: [],
+      });
     }
 
     const parts = await Part.find({ _id: { $in: recommendations } }).select(
@@ -398,13 +390,11 @@ exports.getRecommendations = async (req, res) => {
       .json({ success: true, userId, recommendations: parts });
   } catch (err) {
     console.error('❌ خطأ أثناء جلب التوصيات:', err.message);
-    return res
-      .status(500)
-      .json({
-        success: false,
-        message: '❌ فشل في جلب التوصيات',
-        error: err.message,
-      });
+    return res.status(500).json({
+      success: false,
+      message: '❌ فشل في جلب التوصيات',
+      error: err.message,
+    });
   }
 };
 
@@ -430,13 +420,11 @@ exports.getAllParts = async (req, res) => {
       manufacturer: p.manufacturer,
       year: p.year,
     }));
-    res
-      .status(200)
-      .json({
-        success: true,
-        count: formattedParts.length,
-        parts: formattedParts,
-      });
+    res.status(200).json({
+      success: true,
+      count: formattedParts.length,
+      parts: formattedParts,
+    });
   } catch (err) {
     console.error('❌ خطأ عند جلب القطع:', err);
     res.status(500).json({ success: false, message: 'فشل في جلب القطع' });
@@ -488,12 +476,10 @@ exports.addPartsFromExcel = async (req, res) => {
     }
 
     fs.unlinkSync(req.file.path);
-    res
-      .status(201)
-      .json({
-        message: `✅ تم إضافة ${insertedParts.length} قطعة`,
-        parts: insertedParts,
-      });
+    res.status(201).json({
+      message: `✅ تم إضافة ${insertedParts.length} قطعة`,
+      parts: insertedParts,
+    });
   } catch (err) {
     console.error(err);
     res.status(500).json({ message: '❌ فشل في إضافة القطع' });
@@ -517,13 +503,11 @@ exports.getCompatibleParts = async (req, res) => {
       );
     if (!user || !user.cars || user.cars.length === 0) {
       const parts = await Part.find({ count: { $gt: 0 } }).sort({ price: 1 });
-      return res
-        .status(200)
-        .json({
-          success: true,
-          compatibleParts: parts,
-          message: 'تم إرجاع كل القطع',
-        });
+      return res.status(200).json({
+        success: true,
+        compatibleParts: parts,
+        message: 'تم إرجاع كل القطع',
+      });
     }
 
     const orConditions = user.cars
@@ -538,15 +522,13 @@ exports.getCompatibleParts = async (req, res) => {
       .filter(Boolean);
 
     if (orConditions.length === 0) {
-      return res
-        .status(200)
-        .json({
-          success: true,
-          userCars: user.cars,
-          compatibleParts: [],
-          meta: { totalParts: 0 },
-          message: 'لا توجد بيانات مطابقة صالحة للسيارات',
-        });
+      return res.status(200).json({
+        success: true,
+        userCars: user.cars,
+        compatibleParts: [],
+        meta: { totalParts: 0 },
+        message: 'لا توجد بيانات مطابقة صالحة للسيارات',
+      });
     }
 
     const compatibleParts = await Part.find({
@@ -580,14 +562,11 @@ exports.getCompatibleParts = async (req, res) => {
     });
   } catch (error) {
     console.error('حدث خطأ في جلب القطع المتوافقة:', error);
-    res
-      .status(500)
-      .json({
-        success: false,
-        message: 'حدث خطأ في الخادم',
-        error:
-          process.env.NODE_ENV === 'development' ? error.message : undefined,
-      });
+    res.status(500).json({
+      success: false,
+      message: 'حدث خطأ في الخادم',
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined,
+    });
   }
 };
 
@@ -699,20 +678,18 @@ exports.getPartRatings = async (req, res) => {
         : [];
 
     if (!ratings.length) {
-      return res
-        .status(200)
-        .json({
-          success: true,
-          data: {
-            partId,
-            avgRating: Number(partDoc.avgRating || 0),
-            ratingsCount: Number(partDoc.ratingsCount || 0),
-            breakdown: { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 },
-            page,
-            limit,
-            items: [],
-          },
-        });
+      return res.status(200).json({
+        success: true,
+        data: {
+          partId,
+          avgRating: Number(partDoc.avgRating || 0),
+          ratingsCount: Number(partDoc.ratingsCount || 0),
+          breakdown: { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 },
+          page,
+          limit,
+          items: [],
+        },
+      });
     }
 
     const counts = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 };
@@ -735,20 +712,18 @@ exports.getPartRatings = async (req, res) => {
         createdAt: r?.createdAt ?? null,
       }));
 
-    return res
-      .status(200)
-      .json({
-        success: true,
-        data: {
-          partId,
-          avgRating: Number(partDoc.avgRating ?? avg),
-          ratingsCount: Number(partDoc.ratingsCount ?? total),
-          breakdown: counts,
-          page,
-          limit,
-          items,
-        },
-      });
+    return res.status(200).json({
+      success: true,
+      data: {
+        partId,
+        avgRating: Number(partDoc.avgRating ?? avg),
+        ratingsCount: Number(partDoc.ratingsCount ?? total),
+        breakdown: counts,
+        page,
+        limit,
+        items,
+      },
+    });
   } catch (e) {
     console.error(e);
     return res.status(500).json({ success: false, message: 'خطأ في الخادم' });
@@ -783,12 +758,10 @@ exports.ratePart = async (req, res) => {
       match: { partId: new mongoose.Types.ObjectId(partId) },
     });
     if (!order)
-      return res
-        .status(403)
-        .json({
-          success: false,
-          message: 'لا يمكنك تقييم هذه القطعة قبل استلامها',
-        });
+      return res.status(403).json({
+        success: false,
+        message: 'لا يمكنك تقييم هذه القطعة قبل استلامها',
+      });
 
     const partDoc = await Part.findById(partId);
     if (!partDoc)
@@ -817,13 +790,11 @@ exports.ratePart = async (req, res) => {
       },
     );
 
-    return res
-      .status(200)
-      .json({
-        success: true,
-        message: '✅ تم حفظ التقييم بنجاح',
-        data: { avgRating, ratingsCount },
-      });
+    return res.status(200).json({
+      success: true,
+      message: '✅ تم حفظ التقييم بنجاح',
+      data: { avgRating, ratingsCount },
+    });
   } catch (err) {
     console.error(err);
     return res.status(500).json({ success: false, message: 'خطأ في الخادم' });
@@ -902,14 +873,11 @@ exports.getallOrdersForSeller = async (req, res) => {
     });
   } catch (error) {
     console.error('خطأ في جلب الطلبات:', error);
-    return res
-      .status(500)
-      .json({
-        success: false,
-        message: 'حدث خطأ في الخادم',
-        error:
-          process.env.NODE_ENV === 'development' ? error.message : undefined,
-      });
+    return res.status(500).json({
+      success: false,
+      message: 'حدث خطأ في الخادم',
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined,
+    });
   }
 };
 
@@ -972,14 +940,11 @@ exports.CompatibleSpicificOrders = async (req, res) => {
     });
   } catch (error) {
     console.error('حدث خطأ في جلب الطلبات المتوافقة:', error);
-    return res
-      .status(500)
-      .json({
-        success: false,
-        message: 'حدث خطأ في الخادم',
-        error:
-          process.env.NODE_ENV === 'development' ? error.message : undefined,
-      });
+    return res.status(500).json({
+      success: false,
+      message: 'حدث خطأ في الخادم',
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined,
+    });
   }
 };
 
@@ -1002,12 +967,10 @@ exports.addspicificorder = async (req, res) => {
 
     const userExists = await User.findById(user);
     if (!userExists)
-      return res
-        .status(404)
-        .json({
-          success: false,
-          message: '🚫 المستخدم غير موجود في قاعدة البيانات',
-        });
+      return res.status(404).json({
+        success: false,
+        message: '🚫 المستخدم غير موجود في قاعدة البيانات',
+      });
 
     const imageUrl = req.file
       ? `/uploads/specific-orders/${req.file.filename}`
