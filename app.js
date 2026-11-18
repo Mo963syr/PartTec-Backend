@@ -1,6 +1,7 @@
 const express = require('express');
 const mongoose = require('mongoose');
 const path = require('path');
+const fs = require('fs');
 require('dotenv').config();
 
 const carRoutes = require('./routes/car.Routes');
@@ -56,6 +57,12 @@ app.options('*', cors());
 // ✅ اجمع كل الراوتات داخل Router واحد
 const api = express.Router();
 
+// app.js أو server.js
+
+if (!fs.existsSync('uploads/parts')) {
+  fs.mkdirSync('uploads/parts', { recursive: true });
+}
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 api.use('/pricing', pricingRoutes);
 api.use('/cars', carRoutes);
 api.use('/car-brands', carBrands);

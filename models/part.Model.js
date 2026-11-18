@@ -95,6 +95,7 @@ const partSchema = new mongoose.Schema(
         message: (props) => `${props.value} ليس رابط صحيح للصورة!`,
       },
     },
+    images: [{ type: String }],
 
     user: {
       type: mongoose.Schema.Types.ObjectId,

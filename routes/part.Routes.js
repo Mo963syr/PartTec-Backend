@@ -20,8 +20,8 @@ const {
   getPartsbyId,
   getRecommendations,
 } = require('../controllers/part.Controller');
-
-const upload = multer({ dest: 'uploads/' });
+const upload = require('../middleware/upload');
+// const upload = multer({ dest: 'uploads/' });
 const partImageUpload = multer({
   storage: multer.diskStorage({
     destination: (req, file, cb) => {
@@ -41,8 +41,13 @@ const partImageUpload = multer({
 
 router.post('/upload-excel', upload.single('file'), addPartsFromExcel);
 router.delete('/delete/:id', deletePart);
-router.put('/update/:id', partImageUpload.single('image'), updatePart);
-router.post('/add', partImageUpload.single('image'), addPart);
+router.put(
+  '/update/:id',
+  upload.array('images', 10),
+  upload.processImages,
+  updatePart,
+);
+router.post('/add', upload.array('images', 10), upload.processImages, addPart);
 router.post('/ratePart/:partId', ratePart);
 router.get('/getPartRatings/:partId', getPartRatings);
 router.get('/getRecommendations/:userId', getRecommendations);
