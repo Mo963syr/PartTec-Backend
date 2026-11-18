@@ -163,16 +163,17 @@ function listEndpoints(app) {
     });
 
   console.log('\n================= ✅ API ENDPOINTS =================');
+  console.log('===================================================');
+  console.log(`🚀 السيرفر يعمل الآن على المنفذ: ${PORT}`);
+  console.log('✅ تم تحميل ميزة: رفع وضغط عدة صور (WebP) بنجاح!');
+  console.log('📅 تاريخ التشغيل:', new Date().toLocaleString());
   [...grouped.entries()].forEach(([path, methodsSet]) => {
     const methods = [...methodsSet].sort().join(', ');
     console.log(`${methods.padEnd(22)} ${path}`);
   });
   console.log('====================================================\n');
-}  console.log('===================================================');
-  console.log(`🚀 السيرفر يعمل الآن على المنفذ: ${PORT}`);
-  console.log('✅ تم تحميل ميزة: رفع وضغط عدة صور (WebP) بنجاح!');
-  console.log('📅 تاريخ التشغيل:', new Date().toLocaleString());
-  console.log('===================================================');
+}
+console.log('===================================================');
 /* ========================= */
 process.env.TZ = 'Europe/Istanbul';
 mongoose.set('strictQuery', true);
