@@ -15,13 +15,15 @@ const axios = require('axios');
 const upload = require('../middleware/upload');
 
 // استدعاء دوال التطبيع
-const { normalizeManufacturer, normalizeModel } = require('../utils/normalization');
+const {
+  normalizeManufacturer,
+  normalizeModel,
+} = require('../utils/normalization');
 
 // ==========================================
 // 1. الثوابت (Constants)
 // ==========================================
-// const BASE_URL = 'http://187.124.131.209:3001';
-const BASE_URL = 'http://localhost:3000';
+const BASE_URL = 'http://187.124.131.209:3001';
 const UPLOAD_PATH = '/uploads/parts';
 const MAX_IMAGES = 10;
 
@@ -72,7 +74,8 @@ const parseCompatibleCars = (compatibleCars) => {
   if (Array.isArray(compatibleCars)) return compatibleCars;
   if (typeof compatibleCars === 'string') {
     const parsed = JSON.parse(compatibleCars);
-    if (!Array.isArray(parsed)) throw new Error('compatibleCars يجب أن تكون مصفوفة');
+    if (!Array.isArray(parsed))
+      throw new Error('compatibleCars يجب أن تكون مصفوفة');
     return parsed;
   }
   throw new Error('صيغة compatibleCars غير صحيحة');
@@ -101,11 +104,16 @@ const deleteFileByUrl = (url) => {
 };
 
 function normalizeText(text = '') {
-  return text.toString().trim().toLowerCase()
-    .replace(/[أإآ]/g, 'ا').replace(/ى/g, 'ي').replace(/ة/g, 'ه')
-    .replace(/\s+/g, '').replace(/[-_]/g, '');
+  return text
+    .toString()
+    .trim()
+    .toLowerCase()
+    .replace(/[أإآ]/g, 'ا')
+    .replace(/ى/g, 'ي')
+    .replace(/ة/g, 'ه')
+    .replace(/\s+/g, '')
+    .replace(/[-_]/g, '');
 }
-
 
 // ==========================================
 // 3. إضافة وتعديل القطع (Add & Update)
@@ -113,27 +121,51 @@ function normalizeText(text = '') {
 exports.addPart = async (req, res) => {
   try {
     const {
-      name, manufacturer, model, year, category, status,
-      count, price, serialNumber, description, user,
-      compatibleCars, warehouse,
+      name,
+      manufacturer,
+      model,
+      year,
+      category,
+      status,
+      count,
+      price,
+      serialNumber,
+      description,
+      user,
+      compatibleCars,
+      warehouse,
     } = req.body;
 
     const userId = req.user?._id || user;
 
     if (!userId) {
       upload.cleanupFiles(req.files);
-      return res.status(400).json({ success: false, message: '🚫 يجب تحديد معرف المستخدم' });
+      return res
+        .status(400)
+        .json({ success: false, message: '🚫 يجب تحديد معرف المستخدم' });
     }
 
     const selectedWarehouse = await findWarehouse(warehouse);
     if (!selectedWarehouse) {
       upload.cleanupFiles(req.files);
-      return res.status(404).json({ success: false, message: 'المستودع المحدد غير موجود' });
+      return res
+        .status(404)
+        .json({ success: false, message: 'المستودع المحدد غير موجود' });
     }
 
-    if (!name || !manufacturer || !model || !year || !category || !count || !price) {
+    if (
+      !name ||
+      !manufacturer ||
+      !model ||
+      !year ||
+      !category ||
+      !count ||
+      !price
+    ) {
       upload.cleanupFiles(req.files);
-      return res.status(400).json({ success: false, message: 'يرجى تعبئة جميع الحقول المطلوبة' });
+      return res
+        .status(400)
+        .json({ success: false, message: 'يرجى تعبئة جميع الحقول المطلوبة' });
     }
 
     let parsedCompatibleCars = [];
@@ -149,7 +181,9 @@ exports.addPart = async (req, res) => {
     const newPart = new Part({
       name: name.trim(),
       manufacturer: manufacturer.trim(),
-      serialNumber: serialNumber ? serialNumber.trim().toUpperCase() : undefined,
+      serialNumber: serialNumber
+        ? serialNumber.trim().toUpperCase()
+        : undefined,
       model: model.trim(),
       year: parseInt(year, 10),
       count: parseInt(count, 10),
@@ -157,15 +191,17 @@ exports.addPart = async (req, res) => {
       status: status ? status.trim() : 'جديد',
       user: userId,
       warehouse: selectedWarehouse._id,
-      imageUrl: imageUrls[0] || null, 
-      images: imageUrls,              
+      imageUrl: imageUrls[0] || null,
+      images: imageUrls,
       price: parseFloat(price),
       description: description ? description.trim() : undefined,
       compatibleCars: parsedCompatibleCars,
     });
 
     await newPart.save();
-    res.status(201).json({ success: true, message: '✅ تم إضافة المنتج', part: newPart });
+    res
+      .status(201)
+      .json({ success: true, message: '✅ تم إضافة المنتج', part: newPart });
   } catch (error) {
     console.error('❌ خطأ أثناء إضافة المنتج:', error);
     upload.cleanupFiles(req.files);
@@ -173,9 +209,17 @@ exports.addPart = async (req, res) => {
     if (multerResponse) return multerResponse;
 
     if (error.code === 11000) {
-      return res.status(400).json({ success: false, message: 'يوجد سجل مكرر في البيانات' });
+      return res
+        .status(400)
+        .json({ success: false, message: 'يوجد سجل مكرر في البيانات' });
     }
-    res.status(500).json({ success: false, message: '❌ فشل في إضافة المنتج', error: error.message });
+    res
+      .status(500)
+      .json({
+        success: false,
+        message: '❌ فشل في إضافة المنتج',
+        error: error.message,
+      });
   }
 };
 
@@ -185,12 +229,23 @@ exports.updatePart = async (req, res) => {
     const part = await Part.findById(id);
     if (!part) {
       upload.cleanupFiles(req.files);
-      return res.status(404).json({ success: false, message: '❌ القطعة غير موجودة' });
+      return res
+        .status(404)
+        .json({ success: false, message: '❌ القطعة غير موجودة' });
     }
 
     const allowedFields = [
-      'name', 'manufacturer', 'model', 'year', 'category', 'status',
-      'count', 'price', 'serialNumber', 'description', 'compatibleCars',
+      'name',
+      'manufacturer',
+      'model',
+      'year',
+      'category',
+      'status',
+      'count',
+      'price',
+      'serialNumber',
+      'description',
+      'compatibleCars',
     ];
 
     for (const field of allowedFields) {
@@ -206,7 +261,9 @@ exports.updatePart = async (req, res) => {
           part[field] = parseFloat(value);
           break;
         case 'serialNumber':
-          part.serialNumber = value ? String(value).trim().toUpperCase() : undefined;
+          part.serialNumber = value
+            ? String(value).trim().toUpperCase()
+            : undefined;
           break;
         case 'compatibleCars':
           try {
@@ -225,25 +282,34 @@ exports.updatePart = async (req, res) => {
       const selectedWarehouse = await findWarehouse(req.body.warehouse);
       if (!selectedWarehouse) {
         upload.cleanupFiles(req.files);
-        return res.status(404).json({ success: false, message: 'المستودع المحدد غير موجود' });
+        return res
+          .status(404)
+          .json({ success: false, message: 'المستودع المحدد غير موجود' });
       }
       part.warehouse = selectedWarehouse._id;
     }
 
-    let currentImages = Array.isArray(part.images) && part.images.length
-      ? [...part.images]
-      : part.imageUrl ? [part.imageUrl] : [];
+    let currentImages =
+      Array.isArray(part.images) && part.images.length
+        ? [...part.images]
+        : part.imageUrl
+          ? [part.imageUrl]
+          : [];
 
     let toDeleteFromDisk = [];
     if (req.body.removedImages !== undefined) {
       let removed;
       try {
-        removed = typeof req.body.removedImages === 'string'
-          ? JSON.parse(req.body.removedImages) : req.body.removedImages;
+        removed =
+          typeof req.body.removedImages === 'string'
+            ? JSON.parse(req.body.removedImages)
+            : req.body.removedImages;
         if (!Array.isArray(removed)) throw new Error();
       } catch {
         upload.cleanupFiles(req.files);
-        return res.status(400).json({ success: false, message: 'صيغة removedImages غير صحيحة' });
+        return res
+          .status(400)
+          .json({ success: false, message: 'صيغة removedImages غير صحيحة' });
       }
 
       toDeleteFromDisk = currentImages.filter((url) => removed.includes(url));
@@ -255,7 +321,9 @@ exports.updatePart = async (req, res) => {
 
     if (finalImages.length > MAX_IMAGES) {
       upload.cleanupFiles(req.files);
-      return res.status(400).json({ success: false, message: `الحد الأقصى ${MAX_IMAGES} صور.` });
+      return res
+        .status(400)
+        .json({ success: false, message: `الحد الأقصى ${MAX_IMAGES} صور.` });
     }
 
     part.images = finalImages;
@@ -272,14 +340,26 @@ exports.updatePart = async (req, res) => {
     const multerResponse = upload.handleMulterError(err, res);
     if (multerResponse) return multerResponse;
 
-    if (err.code === 11000) return res.status(400).json({ success: false, message: 'يوجد سجل مكرر' });
+    if (err.code === 11000)
+      return res.status(400).json({ success: false, message: 'يوجد سجل مكرر' });
     if (err.name === 'ValidationError') {
-      return res.status(400).json({ success: false, message: 'بيانات غير صحيحة', errors: Object.values(err.errors).map((e) => e.message) });
+      return res
+        .status(400)
+        .json({
+          success: false,
+          message: 'بيانات غير صحيحة',
+          errors: Object.values(err.errors).map((e) => e.message),
+        });
     }
-    res.status(500).json({ success: false, message: '⚠️ خطأ في السيرفر', error: err.message });
+    res
+      .status(500)
+      .json({
+        success: false,
+        message: '⚠️ خطأ في السيرفر',
+        error: err.message,
+      });
   }
 };
-
 
 // ==========================================
 // 4. دوال الجلب (Getters)
@@ -288,32 +368,52 @@ exports.getRecommendations = async (req, res) => {
   try {
     const { userId } = req.params;
     if (!mongoose.Types.ObjectId.isValid(userId)) {
-      return res.status(400).json({ success: false, message: '⚠️ معرف المستخدم غير صالح' });
+      return res
+        .status(400)
+        .json({ success: false, message: '⚠️ معرف المستخدم غير صالح' });
     }
 
     const response = await axios.post(
       'https://reccomendation-system-06l7.onrender.com/recommend',
       { user_id: userId, top_n: 10 },
-      { headers: { 'Content-Type': 'application/json' } }
+      { headers: { 'Content-Type': 'application/json' } },
     );
 
     const recommendations = response.data.recommendations || [];
     if (!Array.isArray(recommendations) || recommendations.length === 0) {
-      return res.status(200).json({ success: true, message: 'لا توجد توصيات حالياً', recommendations: [] });
+      return res
+        .status(200)
+        .json({
+          success: true,
+          message: 'لا توجد توصيات حالياً',
+          recommendations: [],
+        });
     }
 
-    const parts = await Part.find({ _id: { $in: recommendations } }).select('name manufacturer model year price imageUrl');
-    return res.status(200).json({ success: true, userId, recommendations: parts });
+    const parts = await Part.find({ _id: { $in: recommendations } }).select(
+      'name manufacturer model year price imageUrl',
+    );
+    return res
+      .status(200)
+      .json({ success: true, userId, recommendations: parts });
   } catch (err) {
     console.error('❌ خطأ أثناء جلب التوصيات:', err.message);
-    return res.status(500).json({ success: false, message: '❌ فشل في جلب التوصيات', error: err.message });
+    return res
+      .status(500)
+      .json({
+        success: false,
+        message: '❌ فشل في جلب التوصيات',
+        error: err.message,
+      });
   }
 };
 
 exports.getPartsbyId = async (req, res) => {
   try {
     const { partId } = req.body;
-    const parts = await Part.find({ _id: partId }).select('_id name manufacturer year').lean();
+    const parts = await Part.find({ _id: partId })
+      .select('_id name manufacturer year')
+      .lean();
     res.status(200).json({ success: true, parts: parts });
   } catch (err) {
     console.error('❌ خطأ عند جلب القطع:', err);
@@ -330,7 +430,13 @@ exports.getAllParts = async (req, res) => {
       manufacturer: p.manufacturer,
       year: p.year,
     }));
-    res.status(200).json({ success: true, count: formattedParts.length, parts: formattedParts });
+    res
+      .status(200)
+      .json({
+        success: true,
+        count: formattedParts.length,
+        parts: formattedParts,
+      });
   } catch (err) {
     console.error('❌ خطأ عند جلب القطع:', err);
     res.status(500).json({ success: false, message: 'فشل في جلب القطع' });
@@ -339,13 +445,19 @@ exports.getAllParts = async (req, res) => {
 
 exports.addPartsFromExcel = async (req, res) => {
   try {
-    if (!req.file) return res.status(400).json({ message: '⚠️ لم يتم رفع أي ملف' });
+    if (!req.file)
+      return res.status(400).json({ message: '⚠️ لم يتم رفع أي ملف' });
     const { user, warehouse } = req.body;
-    if (!user) return res.status(400).json({ message: '⚠️ يجب إرسال معرف المستخدم مع الطلب' });
+    if (!user)
+      return res
+        .status(400)
+        .json({ message: '⚠️ يجب إرسال معرف المستخدم مع الطلب' });
 
     const selectedWarehouse = await findWarehouse(warehouse);
     if (!selectedWarehouse) {
-      return res.status(404).json({ success: false, message: 'المستودع المحدد غير موجود' });
+      return res
+        .status(404)
+        .json({ success: false, message: 'المستودع المحدد غير موجود' });
     }
 
     const { imagesByRow } = await extractExcelImages(req.file.path);
@@ -376,7 +488,12 @@ exports.addPartsFromExcel = async (req, res) => {
     }
 
     fs.unlinkSync(req.file.path);
-    res.status(201).json({ message: `✅ تم إضافة ${insertedParts.length} قطعة`, parts: insertedParts });
+    res
+      .status(201)
+      .json({
+        message: `✅ تم إضافة ${insertedParts.length} قطعة`,
+        parts: insertedParts,
+      });
   } catch (err) {
     console.error(err);
     res.status(500).json({ message: '❌ فشل في إضافة القطع' });
@@ -387,28 +504,58 @@ exports.getCompatibleParts = async (req, res) => {
   try {
     const { userid } = req.params;
     if (!mongoose.Types.ObjectId.isValid(userid)) {
-      return res.status(400).json({ success: false, message: 'معرف المستخدم غير صالح' });
+      return res
+        .status(400)
+        .json({ success: false, message: 'معرف المستخدم غير صالح' });
     }
 
-    const user = await User.findById(userid).select('cars').populate('cars', 'manufacturer model year manufacturerNormalized modelNormalized');
+    const user = await User.findById(userid)
+      .select('cars')
+      .populate(
+        'cars',
+        'manufacturer model year manufacturerNormalized modelNormalized',
+      );
     if (!user || !user.cars || user.cars.length === 0) {
       const parts = await Part.find({ count: { $gt: 0 } }).sort({ price: 1 });
-      return res.status(200).json({ success: true, compatibleParts: parts, message: 'تم إرجاع كل القطع' });
+      return res
+        .status(200)
+        .json({
+          success: true,
+          compatibleParts: parts,
+          message: 'تم إرجاع كل القطع',
+        });
     }
 
-    const orConditions = user.cars.map((car) => {
-      const manufacturerNormalized = car.manufacturerNormalized || normalizeManufacturer(car.manufacturer);
-      const modelNormalized = car.modelNormalized || normalizeModel(car.model);
-      if (!manufacturerNormalized || !modelNormalized) return null;
-      return { manufacturerNormalized, modelNormalized };
-    }).filter(Boolean);
+    const orConditions = user.cars
+      .map((car) => {
+        const manufacturerNormalized =
+          car.manufacturerNormalized || normalizeManufacturer(car.manufacturer);
+        const modelNormalized =
+          car.modelNormalized || normalizeModel(car.model);
+        if (!manufacturerNormalized || !modelNormalized) return null;
+        return { manufacturerNormalized, modelNormalized };
+      })
+      .filter(Boolean);
 
     if (orConditions.length === 0) {
-      return res.status(200).json({ success: true, userCars: user.cars, compatibleParts: [], meta: { totalParts: 0 }, message: 'لا توجد بيانات مطابقة صالحة للسيارات' });
+      return res
+        .status(200)
+        .json({
+          success: true,
+          userCars: user.cars,
+          compatibleParts: [],
+          meta: { totalParts: 0 },
+          message: 'لا توجد بيانات مطابقة صالحة للسيارات',
+        });
     }
 
-    const compatibleParts = await Part.find({ count: { $gt: 0 }, $or: orConditions })
-      .select('name manufacturer manufacturerNormalized serialNumber model modelNormalized year category status price imageUrl count')
+    const compatibleParts = await Part.find({
+      count: { $gt: 0 },
+      $or: orConditions,
+    })
+      .select(
+        'name manufacturer manufacturerNormalized serialNumber model modelNormalized year category status price imageUrl count',
+      )
       .sort({ price: 1 });
 
     res.status(200).json({
@@ -433,7 +580,14 @@ exports.getCompatibleParts = async (req, res) => {
     });
   } catch (error) {
     console.error('حدث خطأ في جلب القطع المتوافقة:', error);
-    res.status(500).json({ success: false, message: 'حدث خطأ في الخادم', error: process.env.NODE_ENV === 'development' ? error.message : undefined });
+    res
+      .status(500)
+      .json({
+        success: false,
+        message: 'حدث خطأ في الخادم',
+        error:
+          process.env.NODE_ENV === 'development' ? error.message : undefined,
+      });
   }
 };
 
@@ -460,7 +614,9 @@ exports.viewPrivateParts = async (req, res) => {
 exports.viewAllParts = async (req, res) => {
   try {
     let parts = await Part.find({ count: { $gt: 0 } });
-    res.status(200).json({ message: '✅ تم جلب القطع بنجاح', compatibleParts: parts });
+    res
+      .status(200)
+      .json({ message: '✅ تم جلب القطع بنجاح', compatibleParts: parts });
   } catch (error) {
     console.error('❌ خطأ أثناء جلب القطع:', error);
     res.status(500).json({ error: 'فشل في جلب القطع' });
@@ -478,7 +634,6 @@ exports.viewsellerParts = async (req, res) => {
   }
 };
 
-
 // ==========================================
 // 5. الحذف والتقييم (Delete & Rating)
 // ==========================================
@@ -490,9 +645,10 @@ exports.deletePart = async (req, res) => {
     if (!mongoose.Types.ObjectId.isValid(targetId)) {
       return res.status(400).json({ error: '❌ معرف القطعة غير صالح' });
     }
-    
+
     const deleted = await Part.findByIdAndDelete(targetId);
-    if (!deleted) return res.status(404).json({ message: '❌ القطعة غير موجودة' });
+    if (!deleted)
+      return res.status(404).json({ message: '❌ القطعة غير موجودة' });
 
     res.json({ message: '✅ تم حذف القطعة', part: deleted });
   } catch (err) {
@@ -506,23 +662,57 @@ exports.getPartRatings = async (req, res) => {
   try {
     const { partId } = req.params;
     const page = Math.max(parseInt(req.query.page || '1', 10), 1);
-    const limit = Math.min(Math.max(parseInt(req.query.limit || '10', 10), 1), 100);
+    const limit = Math.min(
+      Math.max(parseInt(req.query.limit || '10', 10), 1),
+      100,
+    );
     const skip = (page - 1) * limit;
 
     if (!mongoose.Types.ObjectId.isValid(partId)) {
-      return res.status(400).json({ success: false, message: 'معرّف غير صالح' });
+      return res
+        .status(400)
+        .json({ success: false, message: 'معرّف غير صالح' });
     }
 
-    const partDoc = await Part.findById(partId, { ratings: 1, avgRating: 1, ratingsCount: 1 })
-      .populate({ path: 'ratings.user', select: 'name email role', options: { lean: true } }).lean();
+    const partDoc = await Part.findById(partId, {
+      ratings: 1,
+      avgRating: 1,
+      ratingsCount: 1,
+    })
+      .populate({
+        path: 'ratings.user',
+        select: 'name email role',
+        options: { lean: true },
+      })
+      .lean();
 
-    if (!partDoc) return res.status(404).json({ success: false, message: 'القطعة غير موجودة' });
+    if (!partDoc)
+      return res
+        .status(404)
+        .json({ success: false, message: 'القطعة غير موجودة' });
 
     const raw = partDoc.ratings ?? [];
-    const ratings = Array.isArray(raw) ? raw : raw && typeof raw === 'object' ? Object.values(raw) : [];
+    const ratings = Array.isArray(raw)
+      ? raw
+      : raw && typeof raw === 'object'
+        ? Object.values(raw)
+        : [];
 
     if (!ratings.length) {
-      return res.status(200).json({ success: true, data: { partId, avgRating: Number(partDoc.avgRating || 0), ratingsCount: Number(partDoc.ratingsCount || 0), breakdown: { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 }, page, limit, items: [] } });
+      return res
+        .status(200)
+        .json({
+          success: true,
+          data: {
+            partId,
+            avgRating: Number(partDoc.avgRating || 0),
+            ratingsCount: Number(partDoc.ratingsCount || 0),
+            breakdown: { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 },
+            page,
+            limit,
+            items: [],
+          },
+        });
     }
 
     const counts = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 };
@@ -534,10 +724,31 @@ exports.getPartRatings = async (req, res) => {
     const sum = ratings.reduce((a, r) => a + Number(r?.rating ?? 0), 0);
     const avg = Number((sum / total).toFixed(2));
 
-    const items = ratings.slice().sort((a, b) => new Date(b?.createdAt || 0) - new Date(a?.createdAt || 0)).slice(skip, skip + limit)
-      .map((r) => ({ userId: r?.user?._id ?? r?.user ?? null, userName: r?.user?.name ?? 'مستخدم', rating: Number(r?.rating ?? 0), createdAt: r?.createdAt ?? null }));
+    const items = ratings
+      .slice()
+      .sort((a, b) => new Date(b?.createdAt || 0) - new Date(a?.createdAt || 0))
+      .slice(skip, skip + limit)
+      .map((r) => ({
+        userId: r?.user?._id ?? r?.user ?? null,
+        userName: r?.user?.name ?? 'مستخدم',
+        rating: Number(r?.rating ?? 0),
+        createdAt: r?.createdAt ?? null,
+      }));
 
-    return res.status(200).json({ success: true, data: { partId, avgRating: Number(partDoc.avgRating ?? avg), ratingsCount: Number(partDoc.ratingsCount ?? total), breakdown: counts, page, limit, items } });
+    return res
+      .status(200)
+      .json({
+        success: true,
+        data: {
+          partId,
+          avgRating: Number(partDoc.avgRating ?? avg),
+          ratingsCount: Number(partDoc.ratingsCount ?? total),
+          breakdown: counts,
+          page,
+          limit,
+          items,
+        },
+      });
   } catch (e) {
     console.error(e);
     return res.status(500).json({ success: false, message: 'خطأ في الخادم' });
@@ -551,36 +762,73 @@ exports.ratePart = async (req, res) => {
     const { userId } = req.body;
     const rating = Number(req.body.rating);
 
-    if (!mongoose.Types.ObjectId.isValid(partId) || !mongoose.Types.ObjectId.isValid(userId)) {
+    if (
+      !mongoose.Types.ObjectId.isValid(partId) ||
+      !mongoose.Types.ObjectId.isValid(userId)
+    ) {
       return res.status(400).json({ success: false, message: 'معرف غير صالح' });
     }
     if (!Number.isFinite(rating) || rating < 1 || rating > 5) {
-      return res.status(400).json({ success: false, message: '⚠️ التقييم يجب أن يكون بين 1 و 5' });
+      return res
+        .status(400)
+        .json({ success: false, message: '⚠️ التقييم يجب أن يكون بين 1 و 5' });
     }
 
-    const order = await Order.findOne({ userId, status: 'تم التوصيل' }).populate({ path: 'cartIds', select: 'partId', match: { partId: new mongoose.Types.ObjectId(partId) } });
-    if (!order) return res.status(403).json({ success: false, message: 'لا يمكنك تقييم هذه القطعة قبل استلامها' });
+    const order = await Order.findOne({
+      userId,
+      status: 'تم التوصيل',
+    }).populate({
+      path: 'cartIds',
+      select: 'partId',
+      match: { partId: new mongoose.Types.ObjectId(partId) },
+    });
+    if (!order)
+      return res
+        .status(403)
+        .json({
+          success: false,
+          message: 'لا يمكنك تقييم هذه القطعة قبل استلامها',
+        });
 
     const partDoc = await Part.findById(partId);
-    if (!partDoc) return res.status(404).json({ success: false, message: 'القطعة غير موجودة' });
+    if (!partDoc)
+      return res
+        .status(404)
+        .json({ success: false, message: 'القطعة غير موجودة' });
 
-    const already = (partDoc.ratings || []).some((r) => r.user.toString() === userId);
-    if (already) return res.status(400).json({ success: false, message: 'لقد قمت بتقييم هذه القطعة سابقًا' });
+    const already = (partDoc.ratings || []).some(
+      (r) => r.user.toString() === userId,
+    );
+    if (already)
+      return res
+        .status(400)
+        .json({ success: false, message: 'لقد قمت بتقييم هذه القطعة سابقًا' });
 
     const ratings = [...(partDoc.ratings || []), { user: userId, rating }];
     const sum = ratings.reduce((a, r) => a + Number(r.rating || 0), 0);
     const avgRating = Number((sum / ratings.length).toFixed(2));
     const ratingsCount = ratings.length;
 
-    await Part.updateOne({ _id: partId }, { $push: { ratings: { user: userId, rating } }, $set: { avgRating, ratingsCount } });
+    await Part.updateOne(
+      { _id: partId },
+      {
+        $push: { ratings: { user: userId, rating } },
+        $set: { avgRating, ratingsCount },
+      },
+    );
 
-    return res.status(200).json({ success: true, message: '✅ تم حفظ التقييم بنجاح', data: { avgRating, ratingsCount } });
+    return res
+      .status(200)
+      .json({
+        success: true,
+        message: '✅ تم حفظ التقييم بنجاح',
+        data: { avgRating, ratingsCount },
+      });
   } catch (err) {
     console.error(err);
     return res.status(500).json({ success: false, message: 'خطأ في الخادم' });
   }
 };
-
 
 // ==========================================
 // 6. الطلبات الخاصة (Specific Orders)
@@ -590,34 +838,78 @@ exports.getallOrdersForSeller = async (req, res) => {
   try {
     const { userid } = req.params;
     const { manufacturer, status } = req.query;
-    if (!mongoose.Types.ObjectId.isValid(userid)) return res.status(400).json({ success: false, message: 'معرف المستخدم غير صالح' });
+    if (!mongoose.Types.ObjectId.isValid(userid))
+      return res
+        .status(400)
+        .json({ success: false, message: 'معرف المستخدم غير صالح' });
 
     const user = await User.findById(userid).select('role');
-    if (!user) return res.status(404).json({ success: false, message: 'المستخدم غير موجود' });
-    if (user.role !== 'seller') return res.status(403).json({ success: false, message: 'هذه العملية متاحة للبائعين فقط' });
+    if (!user)
+      return res
+        .status(404)
+        .json({ success: false, message: 'المستخدم غير موجود' });
+    if (user.role !== 'seller')
+      return res
+        .status(403)
+        .json({ success: false, message: 'هذه العملية متاحة للبائعين فقط' });
 
     const filter = {};
-    if (manufacturer && manufacturer !== 'all') filter.manufacturer = manufacturer;
+    if (manufacturer && manufacturer !== 'all')
+      filter.manufacturer = manufacturer;
 
-    const allowedStatuses = ['قيد البحث', 'قيد المعالجة', 'ملغي', 'على الطريق', 'تم التوصيل', 'مؤكد'];
+    const allowedStatuses = [
+      'قيد البحث',
+      'قيد المعالجة',
+      'ملغي',
+      'على الطريق',
+      'تم التوصيل',
+      'مؤكد',
+    ];
     if (status && status !== 'all') {
-      if (!allowedStatuses.includes(status)) return res.status(400).json({ success: false, message: 'حالة الطلب غير صالحة' });
+      if (!allowedStatuses.includes(status))
+        return res
+          .status(400)
+          .json({ success: false, message: 'حالة الطلب غير صالحة' });
       filter.status = status;
     }
 
-    const orders = await SpicificOrder.find(filter).select('name serialNumber manufacturer model year status price imageUrls notes user count').sort({ createdAt: -1 }).lean();
+    const orders = await SpicificOrder.find(filter)
+      .select(
+        'name serialNumber manufacturer model year status price imageUrls notes user count',
+      )
+      .sort({ createdAt: -1 })
+      .lean();
 
     return res.status(200).json({
       success: true,
       filters: { manufacturer: manufacturer || 'all', status: status || 'all' },
       totalOrders: orders.length,
       orders: orders.map((order) => ({
-        id: order._id, name: order.name, serialNumber: order.serialNumber, manufacturer: order.manufacturer, model: order.model, year: order.year, count: order.count, status: order.status, price: order.price, notes: order.notes, imageUrls: order.imageUrls?.length ? order.imageUrls : ['/default-part-image.jpg'],
+        id: order._id,
+        name: order.name,
+        serialNumber: order.serialNumber,
+        manufacturer: order.manufacturer,
+        model: order.model,
+        year: order.year,
+        count: order.count,
+        status: order.status,
+        price: order.price,
+        notes: order.notes,
+        imageUrls: order.imageUrls?.length
+          ? order.imageUrls
+          : ['/default-part-image.jpg'],
       })),
     });
   } catch (error) {
     console.error('خطأ في جلب الطلبات:', error);
-    return res.status(500).json({ success: false, message: 'حدث خطأ في الخادم', error: process.env.NODE_ENV === 'development' ? error.message : undefined });
+    return res
+      .status(500)
+      .json({
+        success: false,
+        message: 'حدث خطأ في الخادم',
+        error:
+          process.env.NODE_ENV === 'development' ? error.message : undefined,
+      });
   }
 };
 
@@ -625,49 +917,117 @@ exports.CompatibleSpicificOrders = async (req, res) => {
   // (نفس الكود الخاص بك دون تغيير)
   try {
     const { userid, role: targetRole } = req.params;
-    if (!mongoose.Types.ObjectId.isValid(userid)) return res.status(400).json({ success: false, message: 'معرف المستخدم غير صالح' });
+    if (!mongoose.Types.ObjectId.isValid(userid))
+      return res
+        .status(400)
+        .json({ success: false, message: 'معرف المستخدم غير صالح' });
 
     const user = await User.findById(userid).select('prands role');
-    if (!user) return res.status(404).json({ success: false, message: 'المستخدم غير موجود' });
+    if (!user)
+      return res
+        .status(404)
+        .json({ success: false, message: 'المستخدم غير موجود' });
 
     const hasPrands = Array.isArray(user.prands) && user.prands.length > 0;
-    const manufacturerFilter = hasPrands ? { manufacturer: { $in: user.prands } } : {};
+    const manufacturerFilter = hasPrands
+      ? { manufacturer: { $in: user.prands } }
+      : {};
 
     const raw = await SpicificOrder.find(manufacturerFilter)
-      .select('name serialNumber manufacturer model year status price imageUrls notes user')
-      .populate({ path: 'user', match: targetRole ? { role: targetRole } : {}, select: 'role name' })
-      .sort({ price: 1 }).lean();
+      .select(
+        'name serialNumber manufacturer model year status price imageUrls notes user',
+      )
+      .populate({
+        path: 'user',
+        match: targetRole ? { role: targetRole } : {},
+        select: 'role name',
+      })
+      .sort({ price: 1 })
+      .lean();
 
     const compatibleParts = raw.filter((o) => !!o.user);
 
     return res.status(200).json({
-      success: true, userprands: user.prands ?? [],
+      success: true,
+      userprands: user.prands ?? [],
       compatibleParts: compatibleParts.map((order) => ({
-        id: order._id, name: order.name, serialNumber: order.serialNumber, manufacturer: order.manufacturer, model: order.model, count: order.count, year: order.year, notes: order.notes, status: order.status, price: order.price, requesterRole: order.user?.role, imageUrls: order.imageUrls || '/default-part-image.jpg',
+        id: order._id,
+        name: order.name,
+        serialNumber: order.serialNumber,
+        manufacturer: order.manufacturer,
+        model: order.model,
+        count: order.count,
+        year: order.year,
+        notes: order.notes,
+        status: order.status,
+        price: order.price,
+        requesterRole: order.user?.role,
+        imageUrls: order.imageUrls || '/default-part-image.jpg',
       })),
-      meta: { totalorders: compatibleParts.length, filteredByRole: !!targetRole, filteredByPrands: hasPrands },
+      meta: {
+        totalorders: compatibleParts.length,
+        filteredByRole: !!targetRole,
+        filteredByPrands: hasPrands,
+      },
     });
   } catch (error) {
     console.error('حدث خطأ في جلب الطلبات المتوافقة:', error);
-    return res.status(500).json({ success: false, message: 'حدث خطأ في الخادم', error: process.env.NODE_ENV === 'development' ? error.message : undefined });
+    return res
+      .status(500)
+      .json({
+        success: false,
+        message: 'حدث خطأ في الخادم',
+        error:
+          process.env.NODE_ENV === 'development' ? error.message : undefined,
+      });
   }
 };
 
 exports.addspicificorder = async (req, res) => {
   try {
-    const { name, manufacturer, model, year, serialNumber, notes, user, count } = req.body;
-    if (!mongoose.Types.ObjectId.isValid(user)) return res.status(400).json({ success: false, message: '⚠️ معرف المستخدم غير صالح' });
+    const {
+      name,
+      manufacturer,
+      model,
+      year,
+      serialNumber,
+      notes,
+      user,
+      count,
+    } = req.body;
+    if (!mongoose.Types.ObjectId.isValid(user))
+      return res
+        .status(400)
+        .json({ success: false, message: '⚠️ معرف المستخدم غير صالح' });
 
     const userExists = await User.findById(user);
-    if (!userExists) return res.status(404).json({ success: false, message: '🚫 المستخدم غير موجود في قاعدة البيانات' });
+    if (!userExists)
+      return res
+        .status(404)
+        .json({
+          success: false,
+          message: '🚫 المستخدم غير موجود في قاعدة البيانات',
+        });
 
-    const imageUrl = req.file ? `/uploads/specific-orders/${req.file.filename}` : null;
+    const imageUrl = req.file
+      ? `/uploads/specific-orders/${req.file.filename}`
+      : null;
     const newOrder = new SpicificOrder({
-      name, manufacturer: manufacturer.toLowerCase(), model: model.toLowerCase(), year, serialNumber, notes, count, user, imageUrls: imageUrl ? [imageUrl] : [],
+      name,
+      manufacturer: manufacturer.toLowerCase(),
+      model: model.toLowerCase(),
+      year,
+      serialNumber,
+      notes,
+      count,
+      user,
+      imageUrls: imageUrl ? [imageUrl] : [],
     });
 
     await newOrder.save();
-    res.status(201).json({ success: true, message: '✅ تم إضافة الطلب', part: newOrder });
+    res
+      .status(201)
+      .json({ success: true, message: '✅ تم إضافة الطلب', part: newOrder });
   } catch (error) {
     console.error(error);
     res.status(500).json({ success: false, error: '❌ فشل في إضافة الطلب' });
