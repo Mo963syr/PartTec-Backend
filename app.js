@@ -168,7 +168,11 @@ function listEndpoints(app) {
     console.log(`${methods.padEnd(22)} ${path}`);
   });
   console.log('====================================================\n');
-}
+}  console.log('===================================================');
+  console.log(`🚀 السيرفر يعمل الآن على المنفذ: ${PORT}`);
+  console.log('✅ تم تحميل ميزة: رفع وضغط عدة صور (WebP) بنجاح!');
+  console.log('📅 تاريخ التشغيل:', new Date().toLocaleString());
+  console.log('===================================================');
 /* ========================= */
 process.env.TZ = 'Europe/Istanbul';
 mongoose.set('strictQuery', true);
